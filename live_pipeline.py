@@ -46,7 +46,16 @@ MASTER_RETENTION_DAYS = 1095   # rolling 3-year retention on the SAVED master fi
                                 # comfortably larger than DEPLOYMENT_WINDOW_DAYS*1.6 (~720 days).
 STATE_PATH = 'state/paper_portfolio_state.json'
 LIVE_PARAMS_PATH = 'live_params.json'
-HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.nseindia.com/",
+    # CONFIRMED REQUIRED via manual curl testing: without Referer, requests to
+    # this endpoint either hang/timeout or return NSE's own custom "file
+    # doesn't exist" page (served with HTTP 200, not a proper 404). This is
+    # NOT bot-fingerprinting/CAPTCHA -- adding these headers alone was enough.
+}
 
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
@@ -100,6 +109,39 @@ def fetch_todays_bhavcopy(target_date):
         return None, str(e)
 
 
+def find_latest_available_bhavcopy(max_days_back=5):
+    """Search backward starting from YESTERDAY (not today) for the most
+    recent date NSE has actually published a bhavcopy for.
+
+    CRITICAL FIX: the original version of this pipeline assumed
+    datetime.today() was always the right date to fetch -- but NSE does not
+    publish a day's bhavcopy during that day's own trading session, and even
+    after close there's no guarantee of same-day availability (settlement
+    processing delays, minor site issues, etc.) -- there needs to be slack.
+    Starting from yesterday and searching backward handles weekends,
+    holidays, AND ordinary publishing delays uniformly, without needing a
+    hardcoded NSE holiday calendar.
+
+    Returns (date, dataframe). Raises if nothing found within max_days_back
+    -- that many consecutive failures is a real problem (outage, URL pattern
+    change) worth a loud error, not silent retry-forever.
+    """
+    candidate = datetime.today() - timedelta(days=1)
+    attempts = []
+    for _ in range(max_days_back):
+        df, err = fetch_todays_bhavcopy(candidate)
+        if df is not None:
+            print(f"Found latest available bhavcopy: {candidate.date()}")
+            return candidate, df
+        attempts.append((str(candidate.date()), err))
+        candidate -= timedelta(days=1)
+    raise RuntimeError(
+        f"No bhavcopy found in the last {max_days_back} days -- this is unusual "
+        f"enough to be a real problem (outage, filename pattern change), not a "
+        f"normal holiday gap. Attempts: {attempts}"
+    )
+
+
 def fetch_nifty_window(days_back=DEPLOYMENT_WINDOW_DAYS):
     """Fetch enough trailing Nifty history for the RS/regime calcs."""
     end = datetime.today()
@@ -116,17 +158,12 @@ def fetch_nifty_window(days_back=DEPLOYMENT_WINDOW_DAYS):
     return macro
 
 
-def update_master_data(target_date):
-    """Append today's bhavcopy to the master raw parquet. Returns the
-    trailing DEPLOYMENT_WINDOW_DAYS-day slice for signal computation."""
-    print(f"Fetching bhavcopy for {target_date.date()}...")
-    new_day_df, err = fetch_todays_bhavcopy(target_date)
-    if new_day_df is None:
-        raise RuntimeError(f"Could not fetch bhavcopy for {target_date.date()}: {err}. "
-                            f"NOTE: could be a genuine market holiday, or a real fetch failure -- "
-                            f"check manually before assuming this run should be skipped.")
-
-    print(f"Fetched {len(new_day_df)} symbols for {target_date.date()}")
+def update_master_data():
+    """Finds and appends the most recently PUBLISHED bhavcopy (not
+    necessarily "today" -- see find_latest_available_bhavcopy) to the master
+    raw parquet. Returns (actual_date_used, trailing_window_df)."""
+    actual_date, new_day_df = find_latest_available_bhavcopy()
+    print(f"Fetched {len(new_day_df)} symbols for {actual_date.date()}")
 
     if os.path.exists(MASTER_RAW_PARQUET):
         master_df = pd.read_parquet(MASTER_RAW_PARQUET)
@@ -148,16 +185,16 @@ def update_master_data(target_date):
     # above -- MASTER_RETENTION_DAYS should always be set comfortably larger
     # than DEPLOYMENT_WINDOW_DAYS*1.6, not equal to it, so there's no risk of
     # accidentally trimming away data the signal computation still needs).
-    retention_cutoff = pd.to_datetime(target_date) - timedelta(days=MASTER_RETENTION_DAYS)
+    retention_cutoff = pd.to_datetime(actual_date) - timedelta(days=MASTER_RETENTION_DAYS)
     combined = combined[combined['DATE'] >= retention_cutoff].copy()
 
     combined.to_parquet(MASTER_RAW_PARQUET, engine='pyarrow', compression='snappy')
     print(f"Master raw parquet updated: {len(combined):,} total rows "
           f"(rolling {MASTER_RETENTION_DAYS}-day window, oldest date now {combined['DATE'].min().date()})")
 
-    cutoff = pd.to_datetime(target_date) - timedelta(days=int(DEPLOYMENT_WINDOW_DAYS * 1.6))
+    cutoff = pd.to_datetime(actual_date) - timedelta(days=int(DEPLOYMENT_WINDOW_DAYS * 1.6))
     window_df = combined[combined['DATE'] >= cutoff].copy()
-    return window_df
+    return actual_date, window_df
 
 
 # ==========================================
@@ -442,10 +479,16 @@ def update_sheet_mirror(state):
 # MAIN
 # ==========================================
 def main():
-    target_date = datetime.today()
-    print(f"{'='*60}\nLive pipeline run for {target_date.date()}\n{'='*60}")
+    print(f"{'='*60}\nLive pipeline run started at {datetime.today().date()}\n{'='*60}")
 
-    window_df = update_master_data(target_date)
+    # target_date is now DISCOVERED, not assumed -- see find_latest_available_bhavcopy.
+    # NSE does not publish "today's" bhavcopy during/immediately after today's own
+    # session; the correct date to process is whatever the most recently
+    # PUBLISHED trading day actually is, which is usually yesterday but can be
+    # further back around weekends/holidays/publishing delays.
+    target_date, window_df = update_master_data()
+    print(f"Processing data for actual trading date: {target_date.date()}")
+
     today_rows = compute_todays_signals(window_df, target_date)
     today_lookup = {r['SYMBOL']: r for r in today_rows}
     today_regime = today_rows[0].get('Regime_Label', 'NEUTRAL') if today_rows else 'NEUTRAL'
