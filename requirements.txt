@@ -1,0 +1,8 @@
+pandas
+numpy
+requests
+pyarrow
+yfinance
+python-dateutil
+gspread
+google-auth
