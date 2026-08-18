@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-08-18T07:01:24.711607",
+  "generated_from_data_through": "2026-08-17",
+  "fit_period": [
+    "2023-08-17",
+    "2025-08-14"
+  ],
+  "validation_period": [
+    "2025-08-18",
+    "2026-08-17"
+  ],
+  "random_seed": 42,
+  "params": {
+    "start_cap": 600000,
+    "slip_tax": 0.15,
+    "idle_yield": 6.0,
+    "bull": {
+      "bb_tgt": 4.1,
+      "bb_stop": 2.9,
+      "bb_risk": 1.5,
+      "mr_time": 3,
+      "mr_pos_size": 14.8
+    },
+    "bear": {
+      "bb_tgt": 3.8,
+      "bb_stop": 2.3,
+      "bb_risk": 3.5,
+      "mr_time": 5,
+      "mr_pos_size": 5.1
+    }
+  }
+}
