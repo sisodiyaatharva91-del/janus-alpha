@@ -1,12 +1,47 @@
 {
-  "bb_cash": 120000.0,
+  "bb_cash": 67538.5,
   "bb_equity": 120000.0,
   "mr_cash": 480000.0,
   "mr_equity": 480000.0,
-  "active_bb": {},
+  "active_bb": {
+    "AEGISLOG": {
+      "entry_date": "2026-08-17",
+      "entry_price": 1266.0,
+      "shares": 14,
+      "net_cost": 17724.0,
+      "stop_price": 1104.3428571428572,
+      "target_price": 1533.0857142857144,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.6363636363636364
+    },
+    "PARAS": {
+      "entry_date": "2026-08-17",
+      "entry_price": 1383.5,
+      "shares": 13,
+      "net_cost": 17985.5,
+      "stop_price": 1259.5628571428572,
+      "target_price": 1588.2657142857142,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.6363636363636364
+    },
+    "CARTRADE": {
+      "entry_date": "2026-08-17",
+      "entry_price": 2792.0,
+      "shares": 6,
+      "net_cost": 16752.0,
+      "stop_price": 2571.9392857142857,
+      "target_price": 3155.578571428571,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.6363636363636364
+    }
+  },
   "active_mr": {},
   "closed_trades_log": [],
   "equity_curve_log": [
+    {
+      "date": "2026-08-17",
+      "total_equity": 600000.0
+    },
     {
       "date": "2026-08-17",
       "total_equity": 600000.0
