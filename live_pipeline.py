@@ -40,6 +40,10 @@ from coiled_alpha_logic import apply_coiled_alpha_logic
 # ==========================================
 MASTER_RAW_PARQUET = 'NSE_EQ_Master_Raw.parquet'   # append-only raw OHLCV, git-committed
 DEPLOYMENT_WINDOW_DAYS = 450   # trailing window recomputed each run (>=200 for SMA200 + buffer)
+MASTER_RETENTION_DAYS = 1095   # rolling 3-year retention on the SAVED master file -- keeps the
+                                # repo file bounded in size indefinitely. Matches
+                                # trim_master_for_github.py's one-time initial trim. Must stay
+                                # comfortably larger than DEPLOYMENT_WINDOW_DAYS*1.6 (~720 days).
 STATE_PATH = 'state/paper_portfolio_state.json'
 LIVE_PARAMS_PATH = 'live_params.json'
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
@@ -135,8 +139,21 @@ def update_master_data(target_date):
     combined = pd.concat([master_df, new_day_df], ignore_index=True)
     combined = combined.drop_duplicates(subset=['DATE', 'SYMBOL'], keep='last')
     combined = combined.sort_values(['DATE', 'SYMBOL']).reset_index(drop=True)
+
+    # ROLLING WINDOW TRIM: without this, the saved master parquet grows by one
+    # day's worth of rows every single run, forever -- exactly the GitHub file
+    # size problem that required a manual one-time trim to fix once already.
+    # Keep MASTER_RETENTION_DAYS of trailing history (must stay >= what
+    # compute_todays_signals actually needs -- see DEPLOYMENT_WINDOW_DAYS
+    # above -- MASTER_RETENTION_DAYS should always be set comfortably larger
+    # than DEPLOYMENT_WINDOW_DAYS*1.6, not equal to it, so there's no risk of
+    # accidentally trimming away data the signal computation still needs).
+    retention_cutoff = pd.to_datetime(target_date) - timedelta(days=MASTER_RETENTION_DAYS)
+    combined = combined[combined['DATE'] >= retention_cutoff].copy()
+
     combined.to_parquet(MASTER_RAW_PARQUET, engine='pyarrow', compression='snappy')
-    print(f"Master raw parquet updated: {len(combined):,} total rows")
+    print(f"Master raw parquet updated: {len(combined):,} total rows "
+          f"(rolling {MASTER_RETENTION_DAYS}-day window, oldest date now {combined['DATE'].min().date()})")
 
     cutoff = pd.to_datetime(target_date) - timedelta(days=int(DEPLOYMENT_WINDOW_DAYS * 1.6))
     window_df = combined[combined['DATE'] >= cutoff].copy()
