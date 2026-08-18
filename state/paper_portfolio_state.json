@@ -1,11 +1,16 @@
 {
-  "bb_cash": 300000.0,
-  "bb_equity": 300000.0,
-  "mr_cash": 300000.0,
-  "mr_equity": 300000.0,
+  "bb_cash": 120000.0,
+  "bb_equity": 120000.0,
+  "mr_cash": 480000.0,
+  "mr_equity": 480000.0,
   "active_bb": {},
   "active_mr": {},
   "closed_trades_log": [],
-  "equity_curve_log": [],
-  "last_run_date": null
+  "equity_curve_log": [
+    {
+      "date": "2026-08-17",
+      "total_equity": 600000.0
+    }
+  ],
+  "last_run_date": "2026-08-17"
 }
