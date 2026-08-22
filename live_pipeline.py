@@ -103,7 +103,17 @@ def fetch_todays_bhavcopy(target_date):
                     df = df[df["SctySrs"] == "EQ"]
                     df = df[["TckrSymb", "OpnPric", "HghPric", "LwPric", "ClsPric", "TtlTradgVol"]]
                 df.columns = ["SYMBOL", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]
-                df["DATE"] = target_date
+                # DATE NORMALIZATION FIX: target_date carries whatever time-of-day
+                # the script happened to run at (e.g. 14:13:07 UTC from the cron
+                # trigger), NOT midnight. Historical data in the master parquet is
+                # always midnight-normalized (00:00:00). Without stripping the time
+                # component here, this row's DATE would never exact-match against
+                # pd.to_datetime(target_date).normalize() later in
+                # compute_todays_signals -- the row exists, gets merged fine (merge
+                # logic only uses >= comparisons), but silently becomes invisible
+                # to the exact-equality "today's rows" filter. Strip it at the
+                # earliest possible point instead.
+                df["DATE"] = pd.Timestamp(target_date.date())
                 return df, None
     except Exception as e:
         return None, str(e)
@@ -167,12 +177,12 @@ def update_master_data():
 
     if os.path.exists(MASTER_RAW_PARQUET):
         master_df = pd.read_parquet(MASTER_RAW_PARQUET)
-        master_df['DATE'] = pd.to_datetime(master_df['DATE'])
+        master_df['DATE'] = pd.to_datetime(master_df['DATE']).dt.normalize()
     else:
         raise RuntimeError(f"{MASTER_RAW_PARQUET} not found. Initialize it first by copying your "
                             f"validated NSE_EQ_2015_Fast.parquet (post gap-fix) to this filename.")
 
-    new_day_df['DATE'] = pd.to_datetime(new_day_df['DATE'])
+    new_day_df['DATE'] = pd.to_datetime(new_day_df['DATE']).dt.normalize()
     combined = pd.concat([master_df, new_day_df], ignore_index=True)
     combined = combined.drop_duplicates(subset=['DATE', 'SYMBOL'], keep='last')
     combined = combined.sort_values(['DATE', 'SYMBOL']).reset_index(drop=True)
@@ -209,7 +219,7 @@ def compute_todays_signals(window_df, target_date):
     if macro is None:
         raise RuntimeError("Could not fetch Nifty data -- cannot compute regime/RS.")
 
-    window_df['DATE'] = pd.to_datetime(window_df['DATE'])
+    window_df['DATE'] = pd.to_datetime(window_df['DATE']).dt.normalize()
     if 'TICKER' in window_df.columns and 'SYMBOL' not in window_df.columns:
         window_df = window_df.rename(columns={'TICKER': 'SYMBOL'})
 
