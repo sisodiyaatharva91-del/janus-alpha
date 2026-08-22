@@ -1,8 +1,8 @@
 {
-  "bb_cash": 67538.5,
-  "bb_equity": 120000.0,
-  "mr_cash": 480000.0,
-  "mr_equity": 480000.0,
+  "bb_cash": 67359.11424428572,
+  "bb_equity": 120426.61424428572,
+  "mr_cash": 481706.4569771429,
+  "mr_equity": 481706.4569771429,
   "active_bb": {
     "AEGISLOG": {
       "entry_date": "2026-08-17",
@@ -25,18 +25,30 @@
       "breadth_at_entry": 0.6363636363636364
     },
     "CARTRADE": {
-      "entry_date": "2026-08-17",
-      "entry_price": 2792.0,
+      "entry_date": "2026-08-21",
+      "entry_price": 2893.0,
       "shares": 6,
-      "net_cost": 16752.0,
-      "stop_price": 2571.9392857142857,
-      "target_price": 3155.578571428571,
+      "net_cost": 17358.0,
+      "stop_price": 2666.4992857142856,
+      "target_price": 3267.2185714285715,
       "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.6363636363636364
+      "breadth_at_entry": 0.6243093922651933
     }
   },
   "active_mr": {},
-  "closed_trades_log": [],
+  "closed_trades_log": [
+    {
+      "sleeve": "Sniper",
+      "symbol": "CARTRADE",
+      "entry_date": "2026-08-17",
+      "exit_date": "2026-08-21",
+      "entry_price": 2792.0,
+      "exit_price": 3155.578571428571,
+      "shares": 6,
+      "pnl": 2133.0712214285704,
+      "exit_reason": "target_hit"
+    }
+  ],
   "equity_curve_log": [
     {
       "date": "2026-08-17",
@@ -45,7 +57,11 @@
     {
       "date": "2026-08-17",
       "total_equity": 600000.0
+    },
+    {
+      "date": "2026-08-21",
+      "total_equity": 602133.0712214286
     }
   ],
-  "last_run_date": "2026-08-17"
+  "last_run_date": "2026-08-21"
 }
