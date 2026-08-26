@@ -1,5 +1,5 @@
 {
-  "bb_cash": 67359.11424428572,
+  "bb_cash": 14146.06424428572,
   "bb_equity": 120426.61424428572,
   "mr_cash": 481706.4569771429,
   "mr_equity": 481706.4569771429,
@@ -33,6 +33,36 @@
       "target_price": 3267.2185714285715,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.6243093922651933
+    },
+    "KALYANKJIL": {
+      "entry_date": "2026-08-25",
+      "entry_price": 607.95,
+      "shares": 29,
+      "net_cost": 17630.550000000003,
+      "stop_price": 555.5757142857143,
+      "target_price": 694.4814285714286,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.6546961325966851
+    },
+    "HFCL": {
+      "entry_date": "2026-08-25",
+      "entry_price": 239.7,
+      "shares": 75,
+      "net_cost": 17977.5,
+      "stop_price": 218.48414285714284,
+      "target_price": 274.7522857142857,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.6546961325966851
+    },
+    "LODHA": {
+      "entry_date": "2026-08-25",
+      "entry_price": 1257.5,
+      "shares": 14,
+      "net_cost": 17605.0,
+      "stop_price": 1182.3064285714286,
+      "target_price": 1381.732857142857,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.6546961325966851
     }
   },
   "active_mr": {},
@@ -69,7 +99,11 @@
     {
       "date": "2026-08-24",
       "total_equity": 602133.0712214286
+    },
+    {
+      "date": "2026-08-25",
+      "total_equity": 602133.0712214286
     }
   ],
-  "last_run_date": "2026-08-24"
+  "last_run_date": "2026-08-25"
 }
