@@ -1,8 +1,8 @@
 {
-  "bb_cash": 14146.06424428572,
-  "bb_equity": 120426.61424428572,
-  "mr_cash": 481706.4569771429,
-  "mr_equity": 481706.4569771429,
+  "bb_cash": 31793.448284285725,
+  "bb_equity": 120715.99828428573,
+  "mr_cash": 482863.9931371429,
+  "mr_equity": 482863.9931371429,
   "active_bb": {
     "AEGISLOG": {
       "entry_date": "2026-08-17",
@@ -23,16 +23,6 @@
       "target_price": 1588.2657142857142,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.6363636363636364
-    },
-    "CARTRADE": {
-      "entry_date": "2026-08-21",
-      "entry_price": 2893.0,
-      "shares": 6,
-      "net_cost": 17358.0,
-      "stop_price": 2666.4992857142856,
-      "target_price": 3267.2185714285715,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.6243093922651933
     },
     "KALYANKJIL": {
       "entry_date": "2026-08-25",
@@ -77,6 +67,17 @@
       "shares": 6,
       "pnl": 2133.0712214285704,
       "exit_reason": "target_hit"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "CARTRADE",
+      "entry_date": "2026-08-21",
+      "exit_date": "2026-08-26",
+      "entry_price": 2893.0,
+      "exit_price": 3142.2,
+      "shares": 6,
+      "pnl": 1446.9201999999968,
+      "exit_reason": "exhaustion_exit"
     }
   ],
   "equity_curve_log": [
@@ -103,7 +104,11 @@
     {
       "date": "2026-08-25",
       "total_equity": 602133.0712214286
+    },
+    {
+      "date": "2026-08-26",
+      "total_equity": 603579.9914214286
     }
   ],
-  "last_run_date": "2026-08-25"
+  "last_run_date": "2026-08-26"
 }
