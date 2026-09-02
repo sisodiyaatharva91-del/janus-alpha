@@ -1,8 +1,8 @@
 {
-  "bb_cash": 31793.448284285725,
-  "bb_equity": 120715.99828428573,
-  "mr_cash": 482863.9931371429,
-  "mr_equity": 482863.9931371429,
+  "bb_cash": 49178.940597285735,
+  "bb_equity": 120496.49059728574,
+  "mr_cash": 481985.96238914295,
+  "mr_equity": 481985.96238914295,
   "active_bb": {
     "AEGISLOG": {
       "entry_date": "2026-08-17",
@@ -43,16 +43,6 @@
       "target_price": 274.7522857142857,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.6546961325966851
-    },
-    "LODHA": {
-      "entry_date": "2026-08-25",
-      "entry_price": 1257.5,
-      "shares": 14,
-      "net_cost": 17605.0,
-      "stop_price": 1182.3064285714286,
-      "target_price": 1381.732857142857,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.6546961325966851
     }
   },
   "active_mr": {},
@@ -78,6 +68,17 @@
       "shares": 6,
       "pnl": 1446.9201999999968,
       "exit_reason": "exhaustion_exit"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "LODHA",
+      "entry_date": "2026-08-25",
+      "exit_date": "2026-09-01",
+      "entry_price": 1257.5,
+      "exit_price": 1182.3064285714286,
+      "shares": 14,
+      "pnl": -1097.5384349999986,
+      "exit_reason": "stop_hit"
     }
   ],
   "equity_curve_log": [
@@ -120,7 +121,11 @@
     {
       "date": "2026-08-31",
       "total_equity": 603579.9914214286
+    },
+    {
+      "date": "2026-09-01",
+      "total_equity": 602482.4529864287
     }
   ],
-  "last_run_date": "2026-08-31"
+  "last_run_date": "2026-09-01"
 }
