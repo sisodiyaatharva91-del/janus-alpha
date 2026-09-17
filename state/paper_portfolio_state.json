@@ -1,8 +1,8 @@
 {
-  "bb_cash": 49178.94059728575,
-  "bb_equity": 120496.49059728575,
-  "mr_cash": 481985.962389143,
-  "mr_equity": 481985.962389143,
+  "bb_cash": 66833.29173071434,
+  "bb_equity": 120165.34173071434,
+  "mr_cash": 480661.36692285736,
+  "mr_equity": 480661.36692285736,
   "active_bb": {
     "AEGISLOG": {
       "entry_date": "2026-08-17",
@@ -11,16 +11,6 @@
       "net_cost": 17724.0,
       "stop_price": 1104.3428571428572,
       "target_price": 1533.0857142857144,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.6363636363636364
-    },
-    "PARAS": {
-      "entry_date": "2026-08-17",
-      "entry_price": 1383.5,
-      "shares": 13,
-      "net_cost": 17985.5,
-      "stop_price": 1259.5628571428572,
-      "target_price": 1588.2657142857142,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.6363636363636364
     },
@@ -78,6 +68,17 @@
       "exit_price": 1182.3064285714286,
       "shares": 14,
       "pnl": -1097.5384349999986,
+      "exit_reason": "stop_hit"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "PARAS",
+      "entry_date": "2026-08-17",
+      "exit_date": "2026-09-16",
+      "entry_price": 1383.5,
+      "exit_price": 1259.5628571428572,
+      "shares": 13,
+      "pnl": -1655.7443328571408,
       "exit_reason": "stop_hit"
     }
   ],
@@ -165,7 +166,11 @@
     {
       "date": "2026-09-15",
       "total_equity": 602482.4529864287
+    },
+    {
+      "date": "2026-09-16",
+      "total_equity": 600826.7086535717
     }
   ],
-  "last_run_date": "2026-09-15"
+  "last_run_date": "2026-09-16"
 }
