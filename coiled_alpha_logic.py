@@ -36,8 +36,30 @@ Design / look-ahead notes:
   stock's history never leaks into another's window.
 - RS_Percentile and Daily_Turnover_Rank are computed per-DATE
   (groupby('DATE')) — "top 10%" = top 10% of the ENTIRE MARKET that day.
-- Signal at close(t) -> intended execution at open(t+1), same convention
-  as MR_Base_Signal.
+
+- DECISION TIMING (see section 5b) — signal at close(t) executes at open(t+1).
+  This is now ENFORCED, not merely intended. Until 2026-08-22 this docstring
+  claimed the convention while no code implemented it: every consumer
+  (wfo_engine.py, live_pipeline.py) filled Sniper entries at OPEN(t) while
+  reading BB_Enter_Today / Target_ATR / RS_Percentile / ATR_Contraction_Ratio
+  computed from CLOSE(t) and HIGH(t)/LOW(t) of that SAME bar. That is
+  look-ahead: the fill price precedes the information that justified it.
+  Section 5b lags those four columns by one bar per SYMBOL, so bar t carries
+  decision inputs as of close(t-1) while OPEN(t) remains the fill price.
+  Consumers require no changes.
+
+  ** READ THIS BEFORE "FIXING" AN APPARENT INCONSISTENCY **
+  After section 5b, BB_Enter_Today is deliberately NOT equal to the AND of the
+  Sniper_Pass_* columns on the same row — it equals their AND on the PREVIOUS
+  row. The Sniper_Pass_* columns are unlagged diagnostics. Re-deriving
+  BB_Enter_Today from them on the same row would silently reintroduce the
+  look-ahead. Use BB_Enter_Signal_Raw for same-bar diagnostics instead.
+
+- The MR sleeve is deliberately NOT lagged. MR_Base_Signal fires on close(t)
+  and the engines fill it at CLOSE(t) — a market-on-close convention that is
+  internally consistent and implementable. Lagging it would make the sleeve a
+  full day late on a 1-3 day mean-reversion bounce. BB_Exhaustion_Today is
+  likewise close(t) -> close(t) and left alone.
 - RS is computed two ways:
     RS_Excess = stock_60d_return - nifty_60d_return   <- DEFAULT / recommended
     RS_Ratio  = stock_60d_return / nifty_60d_return   <- legacy, diagnostics only
@@ -51,6 +73,128 @@ import numpy as np
 import pandas as pd
 
 
+def compute_macro_regime(nifty_df, lag_macro_gates: bool = True):
+    """THE single implementation of the market-wide macro gates.
+
+    Both data_prep_updated.py (backtest) and live_pipeline.py (live) call this,
+    so they cannot drift apart. Before 2026-08-22 each file carried its own
+    copy and they HAD drifted: live hardcoded `VIX_Spike = False` because it
+    never fetched Nifty's High/Low, which made the live pipeline silently more
+    permissive on Sniper entries during real volatility spikes than the
+    backtest that validated its parameters. A duplicated block is not a style
+    problem, it is a divergence waiting to happen.
+
+    Columns added:
+
+      Regime_Label     'BULL' if Nifty > its own 200-SMA else 'BEAR'  [LAGGED]
+      VIX_Spike        Nifty ATR(10) > 1.75x its own 50-day baseline  [LAGGED]
+      Systemic_Panic   Nifty daily return under a regime-dependent
+                       threshold (-0.50% in BULL, -1.50% in BEAR)     [NOT lagged]
+
+    plus Regime_Label_Today / VIX_Spike_Today, unlagged, diagnostics only.
+
+    WHY TWO OF THE THREE ARE LAGGED AND ONE IS NOT
+        The Sniper sleeve fills at OPEN(t), so every input to that decision
+        has to be knowable before the open — i.e. as of close(t-1).
+        Regime_Label and VIX_Spike gate the Sniper (they set max_bb_pos and
+        the bb/mr capital split), so on bar t they must carry close(t-1)
+        values. Using bar t's own close to authorise a fill at bar t's own
+        open is look-ahead, and it biases in the flattering direction: more
+        slots and more capital exactly on days that turn out strong, zero
+        slots exactly on days that turn out volatile.
+
+        Systemic_Panic is deliberately NOT lagged. It gates the MR sleeve
+        only, and MR fills at CLOSE(t) — a market-on-close order placed after
+        observing the day, which is implementable and internally consistent.
+        Lagging it would make a capitulation sleeve a full day late on a 1-3
+        day bounce.
+
+        Market_Breadth is the fourth gate. It is built from the stock panel
+        rather than from Nifty, so it lives in apply_coiled_alpha_logic and is
+        lagged there, in section 7b, for exactly this reason.
+
+    A NOTE ON THE PANIC THRESHOLD
+        panic_thresholds is derived from the SAME-BAR regime label on purpose
+        (it is computed before Regime_Label is lagged below — do not reorder).
+        MR may use close(t) information, so its own gate should be internally
+        same-bar throughout.
+
+    NAMING WARNING
+        'VIX_Spike' is NOT India VIX. It is a realised-volatility proxy built
+        from Nifty's own true range. The name is kept because the V9 parquet,
+        the stored WFO result CSVs and live_params.json all use it, and
+        renaming it would invalidate those artifacts for no behavioural gain.
+        Read it as 'Nifty_ATR_Expansion'.
+    """
+    if nifty_df is None:
+        raise ValueError(
+            "compute_macro_regime got None -- the Nifty fetch failed upstream. "
+            "Do not continue with a default regime; the whole allocation "
+            "depends on this."
+        )
+
+    m = nifty_df.copy()
+    m["DATE"] = pd.to_datetime(m["DATE"]).dt.normalize()
+    m = m.sort_values("DATE").reset_index(drop=True)
+
+    missing = [c for c in ("NIFTY_CLOSE", "NIFTY_HIGH", "NIFTY_LOW")
+               if c not in m.columns]
+    if missing:
+        raise ValueError(
+            "compute_macro_regime requires " + str(missing) + " in order to "
+            "compute VIX_Spike from Nifty's true range. Do NOT work around "
+            "this by defaulting VIX_Spike to False -- that exact shortcut is "
+            "what made live diverge from the backtest until 2026-08-22. "
+            "Fetch Nifty's High and Low columns instead."
+        )
+
+    # --- Regime: Nifty against its own 200-SMA -----------------------
+    m["NIFTY_SMA_200"] = m["NIFTY_CLOSE"].rolling(window=200).mean()
+    m["Regime_Label"] = np.where(
+        m["NIFTY_CLOSE"] > m["NIFTY_SMA_200"], "BULL", "BEAR"
+    )
+    m["Prev_Close"] = m["NIFTY_CLOSE"].shift(1)
+
+    # --- VIX_Spike: Nifty ATR(10) against its own 50-day baseline ----
+    m["TR"] = np.maximum(
+        m["NIFTY_HIGH"] - m["NIFTY_LOW"],
+        np.maximum(
+            (m["NIFTY_HIGH"] - m["Prev_Close"]).abs(),
+            (m["NIFTY_LOW"] - m["Prev_Close"]).abs(),
+        ),
+    )
+    m["ATR_10"] = m["TR"].rolling(window=10).mean()
+    m["ATR_Baseline_50"] = m["ATR_10"].rolling(window=50).mean()
+    m["VIX_Spike"] = (m["ATR_10"] > (m["ATR_Baseline_50"] * 1.75)).astype(bool)
+
+    # --- Systemic_Panic: MR's trigger. Same-bar, see docstring. ------
+    panic_thresholds = np.where(m["Regime_Label"] == "BULL", -0.0050, -0.0150)
+    m["Nifty_Daily_Return"] = (
+        (m["NIFTY_CLOSE"] - m["Prev_Close"]) / m["Prev_Close"]
+    )
+    m["Systemic_Panic"] = (m["Nifty_Daily_Return"] < panic_thresholds).astype(bool)
+
+    # --- unlagged copies for diagnostics -----------------------------
+    m["Regime_Label_Today"] = m["Regime_Label"]
+    m["VIX_Spike_Today"] = m["VIX_Spike"]
+
+    if lag_macro_gates:
+        # One row of this frame is one Nifty trading session, so a positional
+        # shift(1) IS "the previous trading session" -- no calendar logic
+        # needed. fill_value=False on the bool column rather than a bare
+        # shift(): bool(float('nan')) is True in Python, so a NaN left on row 0
+        # would be read by `if vix_spike_today:` as a REAL volatility spike and
+        # would zero out the Sniper's slots on the first bar of the panel.
+        m["Regime_Label"] = m["Regime_Label"].shift(1)
+        m["VIX_Spike"] = m["VIX_Spike"].shift(1, fill_value=False).astype(bool)
+
+        assert m["VIX_Spike"].dtype == bool, "VIX_Spike must stay bool after lagging"
+        assert not m["VIX_Spike"].isna().any(), "NaN leaked into VIX_Spike"
+        assert m["Systemic_Panic"].dtype == bool, "Systemic_Panic must stay bool"
+
+    return m
+
+
 def apply_coiled_alpha_logic(
     df: pd.DataFrame,
     nifty_df: pd.DataFrame = None,
@@ -62,8 +206,10 @@ def apply_coiled_alpha_logic(
     high_proximity: float = 0.15,         # within 15% of 50-day high
     liquidity_percentile: float = 0.85,   # top 15% of turnover
     use_rs_ratio_as_signal: bool = False, # keep False; see caveat above
+    lag_macro_gates: bool = True,         # see section 7b; keep True
     price_jump_threshold: float = 0.40,   # corporate-action artifact guard
     min_history_days: int = None,
+    lag_sniper_decision_inputs: bool = True,
 ) -> pd.DataFrame:
     """
     Adds Coiled Alpha diagnostic columns and a final boolean signal
@@ -78,6 +224,17 @@ def apply_coiled_alpha_logic(
          May ALREADY contain 'NIFTY_CLOSE' if the macro/index data has been
          merged into the panel upstream (broadcast per DATE across all
          SYMBOLs) — in that case nifty_df is not needed and is ignored.
+    lag_sniper_decision_inputs : keep True. Enforces the close(t) ->
+         open(t+1) execution convention (section 5b). Set False ONLY to
+         reproduce the pre-2026-08-22 contaminated numbers for an A/B
+         impact measurement. Any research or live result produced with
+         False is look-ahead biased and must not be compared against a
+         True result as if both were valid.
+    lag_macro_gates : keep True. Lags Market_Breadth by one trading DATE
+         (section 7b), enforcing that the Sniper's market-wide gate is as of
+         the previous close, since the Sniper fills at this bar's OPEN. Set
+         False ONLY to reproduce the pre-2026-08-22 contaminated numbers for
+         an A/B impact measurement.
     nifty_df : optional. Nifty 50 index dataframe, columns
          ['DATE', 'NIFTY_CLOSE'] (matches the `macro` dataframe produced by
          the yfinance ^NSEI extraction step in data_prep.py). Only used if
@@ -287,6 +444,64 @@ def apply_coiled_alpha_logic(
     df["Target_ATR"] = df["ATR_Short"]
 
     # ------------------------------------------------------------------
+    # 5b. DECISION-TIMING LAG — enforces signal at close(t) -> fill at
+    #     open(t+1). See the "DECISION TIMING" note in the module docstring
+    #     for why this exists and what breaks if it is removed.
+    #
+    #     These are exactly the four columns the Sniper ENTRY block reads in
+    #     wfo_engine.py / live_pipeline.py, and they are read nowhere else:
+    #
+    #       BB_Enter_Today          -> candidate selection
+    #       Target_ATR              -> stop/target distance + risk-based size
+    #       RS_Percentile           -> primary candidate sort key (descending)
+    #       ATR_Contraction_Ratio   -> tiebreak sort key (ascending)
+    #
+    #     Because the entry block fills at that row's OPEN, lagging the inputs
+    #     one bar per SYMBOL is sufficient and needs no engine edits — which
+    #     matters, since run_headless_simulation is duplicated across several
+    #     files and each hand-edit is a live/backtest drift risk.
+    #
+    #     shift(fill_value=False) rather than shift().fillna(False):
+    #     bool(float('nan')) is True in Python, so a bare shift would leave a
+    #     NaN on each SYMBOL's first bar that the engine's truthiness test
+    #     ("if r['BB_Enter_Today']") reads as a VALID ENTRY SIGNAL — one
+    #     phantom trade per listed symbol, silently. fill_value never creates
+    #     the NaN in the first place, so the trap is unrepresentable rather
+    #     than patched after the fact.
+    #
+    #     The numeric columns keep NaN on the first bar deliberately: the
+    #     engine already guards with `if pd.isna(atr) or atr <= 0: continue`,
+    #     and a NaN there can never be reached anyway, because a True lagged
+    #     BB_Enter_Today implies the prior bar passed the RS and volatility
+    #     -contraction tests, which implies those values were non-NaN.
+    #
+    #     shift() is positional within SYMBOL ("previous available bar for
+    #     this stock"), not calendar-based. That is the correct semantic — the
+    #     last observable close before this open. Note that for a symbol
+    #     returning from a long suspension the previous bar may be far in the
+    #     past; the min_history_days warmup gate limits but does not fully
+    #     eliminate this.
+    # ------------------------------------------------------------------
+    df["BB_Enter_Signal_Raw"] = df["BB_Enter_Today"]   # unlagged, diagnostics only
+
+    if lag_sniper_decision_inputs:
+        df = df.sort_values(["SYMBOL", "DATE"]).reset_index(drop=True)
+        g = df.groupby("SYMBOL")
+
+        df["BB_Enter_Today"] = g["BB_Enter_Today"].shift(1, fill_value=False).astype(bool)
+        for _col in ("Target_ATR", "RS_Percentile", "ATR_Contraction_Ratio"):
+            df[_col] = g[_col].shift(1)
+
+        # Fail loudly rather than trade on a malformed panel.
+        assert df["BB_Enter_Today"].dtype == bool, "BB_Enter_Today must stay bool"
+        assert not df["BB_Enter_Today"].isna().any(), "NaN leaked into BB_Enter_Today"
+        _live = df["BB_Enter_Today"]
+        assert not df.loc[_live, "Target_ATR"].isna().any(), \
+            "Target_ATR is NaN on a row flagged for entry"
+        assert not df.loc[_live, "RS_Percentile"].isna().any(), \
+            "RS_Percentile is NaN on a row flagged for entry"
+
+    # ------------------------------------------------------------------
     # 6. BB_Exhaustion_Today — CARRIED OVER FROM THE LEGACY BLUE-BOX LOGIC
     #    (unchanged from the old data_prep.py; only the entry side of the
     #    sleeve was rewritten, this exit condition is intentionally kept
@@ -349,5 +564,48 @@ def apply_coiled_alpha_logic(
         df["Uptrend_Count"] / df["Liquid_Market_Size"],
         0,
     )
+
+    # ------------------------------------------------------------------
+    # 7b. MACRO DECISION-TIMING LAG — Market_Breadth
+    #
+    #     Market_Breadth is the single most load-bearing macro gate in the
+    #     system. In wfo_engine.py / live_pipeline.py it sets BOTH:
+    #
+    #       max_bb_pos     6 slots if >0.65, 3 if >=0.50, else 1
+    #       the bb/mr split  0.80/0.20, 0.60/0.40, or 0.35/0.65 in BULL
+    #
+    #     so a single tier change swings Sniper capital by more than 2x. It
+    #     was computed from THIS bar's closes and consumed to authorise
+    #     Sniper entries that fill at THIS bar's OPEN — look-ahead, and in
+    #     the flattering direction (most capital on days that turn out
+    #     strong). apply_fixes.py --fix1 lagged the per-stock decision
+    #     inputs and missed this one, so fix1 alone was not sufficient.
+    #
+    #     LAGGED BY DATE, NOT BY SYMBOL. This is the one place where the
+    #     groupby("SYMBOL").shift(1) pattern used in section 5b would be
+    #     WRONG: breadth is a market-wide scalar, identical for every symbol
+    #     on a date. Shifting within SYMBOL would hand a stock that did not
+    #     trade yesterday a breadth reading from a different (older) date
+    #     than its neighbours got, so different stocks would be gated on
+    #     different days' breadth on the same bar. Mapping a date-indexed
+    #     shifted series keeps one breadth value per date for everyone.
+    #
+    #     The first date in the panel gets 0.0 (no prior session exists),
+    #     which reads as "worst tier" — 1 Sniper slot, 0.35 allocation in
+    #     BULL. That is the conservative direction, and the min_history_days
+    #     warmup gate means no entry can fire there anyway.
+    # ------------------------------------------------------------------
+    df["Market_Breadth_Today"] = df["Market_Breadth"]   # unlagged, diagnostics only
+
+    if lag_macro_gates:
+        _breadth_by_date = df.groupby("DATE")["Market_Breadth"].first().sort_index()
+        df["Market_Breadth"] = (
+            df["DATE"].map(_breadth_by_date.shift(1)).astype(float).fillna(0.0)
+        )
+
+        assert not df["Market_Breadth"].isna().any(), \
+            "NaN leaked into Market_Breadth"
+        assert df.groupby("DATE")["Market_Breadth"].nunique().max() <= 1, \
+            "Market_Breadth is no longer constant within a DATE"
 
     return df

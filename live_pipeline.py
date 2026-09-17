@@ -33,7 +33,11 @@ from datetime import datetime, timedelta
 import yfinance as yf
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from coiled_alpha_logic import apply_coiled_alpha_logic
+from coiled_alpha_logic import (
+    apply_coiled_alpha_logic,
+    compute_macro_regime,       # SHARED with data_prep_updated.py -- do not
+                                # reimplement the macro gates here again
+)
 
 # ==========================================
 # CONFIGURATION
@@ -64,6 +68,15 @@ GCP_SA_JSON = os.environ.get('GCP_SA_JSON')  # for the Sheets mirror
 MAX_GAP_LOSS_PCT = 0.03
 ASSUMED_WORST_CASE_GAP_PCT = 0.20
 SLIPPAGE_TAX_PCT = 0.15
+
+# Idle yield on uninvested sleeve cash. MUST match wfo_engine_updated.py, or
+# live equity drifts from the backtest that validated these parameters for a
+# reason that has nothing to do with trading. Until 2026-08-22 the backtest
+# credited yield and live credited NONE (finding #29), so live was structurally
+# behind by roughly the idle fraction times the rate, every single day.
+IDLE_YIELD_PCT = 4.0           # keep equal to wfo_engine_updated.IDLE_YIELD_PCT
+TRADING_DAYS_PER_YEAR = 252    # keep equal to wfo_engine_updated.TRADING_DAYS_PER_YEAR
+MAX_YIELD_CATCHUP_DAYS = 25    # refuse to credit more than this in one run
 
 
 # ==========================================
@@ -161,9 +174,25 @@ def fetch_nifty_window(days_back=DEPLOYMENT_WINDOW_DAYS):
         return None
     if isinstance(nifty.columns, pd.MultiIndex):
         close_col = nifty['Close'].iloc[:, 0]
+        high_col = nifty['High'].iloc[:, 0]
+        low_col = nifty['Low'].iloc[:, 0]
     else:
         close_col = nifty['Close']
-    macro = pd.DataFrame({'DATE': close_col.index, 'NIFTY_CLOSE': close_col.values})
+        high_col = nifty['High']
+        low_col = nifty['Low']
+
+    # NIFTY_HIGH / NIFTY_LOW are REQUIRED, not optional. compute_macro_regime
+    # needs Nifty's own true range for VIX_Spike. Until 2026-08-22 this
+    # function returned CLOSE only and the caller set VIX_Spike = False, so
+    # live never blocked Sniper entries on a volatility spike while the
+    # backtest did. yfinance was already downloading High and Low; they were
+    # simply being thrown away.
+    macro = pd.DataFrame({
+        'DATE': close_col.index,
+        'NIFTY_CLOSE': close_col.values,
+        'NIFTY_HIGH': high_col.values,
+        'NIFTY_LOW': low_col.values,
+    })
     macro['DATE'] = pd.to_datetime(macro['DATE']).dt.tz_localize(None).dt.normalize()
     return macro
 
@@ -226,20 +255,14 @@ def compute_todays_signals(window_df, target_date):
     print("Running Coiled Alpha signal logic...")
     signals_df = apply_coiled_alpha_logic(window_df, nifty_df=macro)
 
-    macro = macro.sort_values('DATE').reset_index(drop=True)
-    macro['NIFTY_SMA_200'] = macro['NIFTY_CLOSE'].rolling(window=200).mean()
-    macro['Regime_Label'] = np.where(macro['NIFTY_CLOSE'] > macro['NIFTY_SMA_200'], 'BULL', 'BEAR')
-    macro['Prev_Close'] = macro['NIFTY_CLOSE'].shift(1)
-    # NOTE: NIFTY_HIGH/LOW not fetched in this lean live version -- VIX_Spike
-    # (which needs Nifty's own ATR) is approximated as False here. TODO before
-    # trusting this in anything beyond early paper trading: fetch NIFTY_HIGH/LOW
-    # too (same as data_prep_updated.py does) and compute VIX_Spike properly --
-    # right now the live pipeline is silently more permissive on Sniper entries
-    # during real volatility spikes than the backtest was.
-    macro['VIX_Spike'] = False
-    panic_thresholds = np.where(macro['Regime_Label'] == 'BULL', -0.0050, -0.0150)
-    macro['Nifty_Daily_Return'] = (macro['NIFTY_CLOSE'] - macro['Prev_Close']) / macro['Prev_Close']
-    macro['Systemic_Panic'] = macro['Nifty_Daily_Return'] < panic_thresholds
+    # ONE shared macro implementation, see coiled_alpha_logic.py. This
+    # replaces a hand-copied block that had drifted from the backtest's
+    # version: VIX_Spike used to be hardcoded False here.
+    #
+    # Regime_Label and VIX_Spike come back LAGGED one trading session (the
+    # Sniper fills at OPEN, so it may only use the previous close);
+    # Systemic_Panic comes back unlagged (MR fills at CLOSE).
+    macro = compute_macro_regime(macro)
 
     signals_df = signals_df.merge(
         macro[['DATE', 'Regime_Label', 'VIX_Spike', 'Systemic_Panic']], on='DATE', how='left'
@@ -288,6 +311,143 @@ def compute_todays_signals(window_df, target_date):
 # ==========================================
 # MODULE 3: PORTFOLIO & EXIT/ENTRY EVALUATOR
 # ==========================================
+def trading_days_since(window_df, last_date_str, target_date):
+    """How many NSE trading sessions fall in (last_run_date, target_date].
+
+    Counted from the bhavcopy panel itself rather than from a hardcoded holiday
+    calendar, so it stays correct through NSE's irregular holidays without
+    anything to maintain. Returns 1 when there is no last_run_date (a fresh or
+    just-reset state file), which is the normal single-session case.
+
+    This exists because a missed run must not silently skip yield. GitHub
+    Actions outages happen, and the backtest accrues on every trading session
+    with no concept of a missed one -- so live has to catch up to stay at
+    parity.
+    """
+    if not last_date_str:
+        return 1
+    try:
+        last = pd.to_datetime(last_date_str).normalize()
+        this = pd.to_datetime(target_date).normalize()
+    except Exception as e:
+        print(f"WARNING: could not parse dates for the yield catch-up ({e}); "
+              f"crediting a single session.")
+        return 1
+    dates = pd.to_datetime(pd.Series(window_df['DATE'].unique())).dt.normalize()
+    return int(((dates > last) & (dates <= this)).sum())
+
+
+def accrue_idle_yield(state, window_df, target_date):
+    """Credit idle yield on uninvested sleeve cash, matching the backtest.
+
+    Called from main() BEFORE the allocation rebalance and before exits, which
+    is the order run_headless_simulation uses (yield -> rebalance -> exits ->
+    entries). Order matters: yield raises cash, cash feeds the rebalance base,
+    and the rebalance base sizes the day's entries.
+
+    Compounds over n sessions with (1 + r)**n - 1 rather than n * r, because
+    the engine adds each day's yield to cash before the next day's accrual, so
+    its cash compounds too. For a single session the two are identical; they
+    only differ on a catch-up.
+    """
+    n_days = trading_days_since(window_df, state.get('last_run_date', ''), target_date)
+
+    if n_days <= 0:
+        print("Idle yield: 0 new trading sessions, nothing accrued.")
+        return 0.0
+
+    if n_days > MAX_YIELD_CATCHUP_DAYS:
+        # Loud, not silent. A number this large means the state file is stale
+        # or corrupt, and quietly crediting a year of yield in one run would
+        # be a far worse outcome than an obviously wrong-looking report.
+        print(f"WARNING: idle yield asked to cover {n_days} trading sessions, "
+              f"which is more than MAX_YIELD_CATCHUP_DAYS={MAX_YIELD_CATCHUP_DAYS}. "
+              f"Capping. Check state['last_run_date'] -- this usually means the "
+              f"pipeline has not run for a long time or the state file is stale.")
+        n_days = MAX_YIELD_CATCHUP_DAYS
+
+    factor = (1 + (IDLE_YIELD_PCT / 100) / TRADING_DAYS_PER_YEAR) ** n_days - 1
+    bb_yield = max(0.0, state['bb_cash']) * factor
+    mr_yield = max(0.0, state['mr_cash']) * factor
+
+    state['bb_cash'] += bb_yield
+    state['bb_equity'] += bb_yield
+    state['mr_cash'] += mr_yield
+    state['mr_equity'] += mr_yield
+
+    print(f"Idle yield: {n_days} session(s) at {IDLE_YIELD_PCT}%/yr -> "
+          f"Sniper +{bb_yield:,.2f}, MR +{mr_yield:,.2f}")
+    return bb_yield + mr_yield
+
+
+def is_new_trading_date(target_date):
+    """True if target_date is genuinely newer than the last processed session.
+
+    FINDING #33 (2026-08-22). state['last_run_date'] was written on every run
+    and never read, so nothing stopped the pipeline re-processing a bhavcopy it
+    had already processed. That happens in practice: the schedule is Mon-Fri,
+    so every NSE holiday makes find_latest_available_bhavcopy fall back to the
+    previous session, and any manual workflow_dispatch or Actions retry does
+    the same.
+
+    What a duplicate run did to the state file:
+      * every MR position aged an extra session -- evaluate_exits does
+        `pos['trading_days'] += 1` unconditionally, so a position hit its time
+        stop early. On an mr_time of 5 sessions, one duplicate run is a 20%
+        distortion of the holding period, biased toward premature exits.
+      * equity_curve_log gained a second row for the same date, quietly
+        corrupting any drawdown or CAGR computed from it later.
+      * any Sniper slot left unfilled could fill against the SAME bar's prices
+        on the second pass.
+      * and once idle yield exists in live, it accrues twice.
+
+    FAILS OPEN, deliberately: if the state file cannot be read or its date
+    cannot be parsed, this returns True with a loud warning rather than
+    blocking. A silent permanent halt is a worse failure mode for a scheduled
+    job than one duplicated session, and last_run_date is written by this same
+    code in a known format, so a parse failure is close to impossible.
+
+    Override with JANUS_FORCE_RERUN=1 -- intended for replaying a session after
+    fixing a bug, and it is on the caller to reset the state file first.
+    """
+    force = os.environ.get('JANUS_FORCE_RERUN', '') == '1'
+
+    try:
+        last_raw = load_state().get('last_run_date', '')
+    except Exception as e:
+        print(f"WARNING: could not read state for the duplicate-run guard ({e}); "
+              f"proceeding without it.")
+        return True
+
+    if not last_raw:
+        return True   # fresh or freshly reset state file
+
+    try:
+        last = pd.to_datetime(last_raw).normalize()
+        this = pd.to_datetime(target_date).normalize()
+    except Exception as e:
+        print(f"WARNING: could not parse last_run_date={last_raw!r} ({e}); "
+              f"proceeding without the guard.")
+        return True
+
+    if this > last:
+        return True
+
+    if force:
+        print(f"JANUS_FORCE_RERUN=1: re-processing {this.date()} even though "
+              f"last_run_date is {last.date()}. State was NOT reset for you -- "
+              f"MR holding periods and the equity curve will double-count.")
+        return True
+
+    print(f"\nAlready processed {this.date()} (last_run_date={last.date()}). "
+          f"Nothing to do.\n"
+          f"This is the EXPECTED path on an NSE holiday: the schedule runs "
+          f"Mon-Fri, no new bhavcopy was published, so the newest available one "
+          f"is the session already in the state file.\n"
+          f"Exiting without touching state. Set JANUS_FORCE_RERUN=1 to override.")
+    return False
+
+
 def load_state():
     with open(STATE_PATH) as f:
         return json.load(f)
@@ -356,8 +516,31 @@ def evaluate_exits(state, today_lookup, today_regime, active_p, target_date):
     return events
 
 
-def evaluate_entries(state, today_rows, today_lookup, today_regime, current_breadth, active_p, target_date):
-    events = []
+def rebalance_allocation(state, today_regime, current_breadth):
+    """Split capital between the sleeves on regime AND breadth jointly.
+
+    EXTRACTED OUT OF evaluate_entries ON 2026-08-22 so that main() can call it
+    in the same position as wfo_engine's run_headless_simulation, which runs it
+    BEFORE exits:
+
+        engine : yield -> REBALANCE -> Sniper exits -> MR exits -> MR entries -> Sniper entries
+        live   : (no yield) -> exits -> [rebalance was in here] -> entries
+
+    Why the order is not cosmetic: bb_equity is a running sleeve balance, not a
+    mark-to-market. An exit adds its realized profit to bb_equity/mr_equity, so
+    rebalancing AFTER exits computes target_bb_equity off a different, larger
+    base -- which then feeds every position size taken that day, since the
+    Sniper entry block sizes off bb_equity three separate ways (risk-based
+    shares, the 20% concentration cap, and gap_safe_shares) and is capped by
+    bb_cash. Same signals, same params, different share counts.
+
+    The engine is the reference implementation the Phase 1 parameters were
+    fitted against, so live conforms to the engine, not the reverse.
+
+    NOTE: the engine also accrues idle yield BEFORE this step, and live still
+    has no yield accrual at all (separate open finding). When yield is added to
+    live it must go before this call, not after.
+    """
     total_equity = state['bb_equity'] + state['mr_equity']
     if today_regime == 'BULL':
         if current_breadth > 0.65: bb_frac, mr_frac = 0.80, 0.20
@@ -369,6 +552,13 @@ def evaluate_entries(state, today_rows, today_lookup, today_regime, current_brea
     state['bb_cash'] += (target_bb_equity - state['bb_equity'])
     state['mr_cash'] += (target_mr_equity - state['mr_equity'])
     state['bb_equity'], state['mr_equity'] = target_bb_equity, target_mr_equity
+    return bb_frac, mr_frac
+
+
+def evaluate_entries(state, today_rows, today_lookup, today_regime, current_breadth, active_p, target_date):
+    events = []
+    # Allocation rebalance deliberately NOT done here any more -- main() calls
+    # rebalance_allocation() before evaluate_exits() to match the engine.
 
     systemic_panic_today = today_rows[0].get('Systemic_Panic', False) if today_rows else False
     if current_breadth < 0.50 and systemic_panic_today and state['mr_cash'] > 0:
@@ -437,49 +627,265 @@ def send_telegram(message):
         print(f"Telegram send failed: {e}")
 
 
-def update_sheet_mirror(state):
+def _sheet_cell(v):
+    """Coerce one value into something gspread can actually serialise.
+
+    EVERY cell must pass through this. Two distinct things break the mirror,
+    both found by test_sheets_payload.py on 2026-08-22:
+
+      NaN / Infinity -- JSON has neither, so gspread raises mid-write. That
+        fails DIRTY: some tabs have already been overwritten, so the sheet is
+        left half-updated and the traceback is about serialisation rather than
+        about the position that produced the NaN.
+
+      numpy scalars -- np.float64 happens to subclass float, so an
+        isinstance(v, float) check catches it, but np.int64 does NOT subclass
+        int and sails straight through to `TypeError: Object of type int64 is
+        not JSON serializable`. Share counts and prices arrive as numpy types
+        whenever they came from a DataFrame row rather than from the JSON state
+        file, so this is the normal path, not an exotic one.
+
+    Hence .item() on anything numpy-shaped BEFORE the float checks, rather
+    than trusting isinstance against Python's builtins.
+    """
+    if v is None or v == '':
+        return ''
+    if hasattr(v, 'item') and not isinstance(v, (str, bytes)):
+        try:
+            v = v.item()          # np.int64/np.float64/np.bool_ -> Python scalar
+        except (ValueError, AttributeError):
+            return str(v)         # 0-d arrays and friends: stringify, never crash
+    if isinstance(v, float):
+        if v != v or v in (float('inf'), float('-inf')):   # NaN / +-inf
+            return ''
+        return round(v, 2)
+    if isinstance(v, (int, bool, str)):
+        return v
+    return str(v)                 # Timestamps, Decimals, anything unexpected
+
+
+def _num(v, default=0.0):
+    """A numeric value safe to do ARITHMETIC with -- distinct from _sheet_cell,
+    which produces a value safe to DISPLAY.
+
+    The idiom this replaces, `x = d.get('k') or 0`, is wrong for exactly the
+    reason the VIX_Spike lag was wrong: bool(float('nan')) is True, so `nan or
+    0` evaluates to nan rather than 0. The NaN then propagates through
+    Market_Value, Unrealized_PnL, and -- worst of all -- the Cum_PnL
+    accumulator, where one bad trade turns every later row into NaN.
+    """
+    if v is None or v == '':
+        return default
+    if hasattr(v, 'item') and not isinstance(v, (str, bytes)):
+        try:
+            v = v.item()
+        except (ValueError, AttributeError):
+            return default
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    if f != f or f in (float('inf'), float('-inf')):
+        return default
+    return v if isinstance(v, int) else f
+
+
+def _sessions_held(state, entry_date):
+    """Trading sessions a position has been held, derived from
+    equity_curve_log (the pipeline appends exactly one row per processed
+    session, so counting rows counts sessions).
+
+    Counts sessions STRICTLY AFTER entry_date. That choice makes this equal to
+    the MR sleeve's own `trading_days` counter -- the number its time stop
+    actually fires on -- instead of being off by one against it, and it gives
+    Sniper positions the same meaning even though they carry no counter of
+    their own. That missing counter is why Days_Held was blank for every
+    Sniper row in the sheet before 2026-08-22.
+    """
+    log = state.get('equity_curve_log') or []
+    if not log or not entry_date:
+        return ''
+    entry = str(entry_date)[:10]
+    return len({str(e.get('date', ''))[:10] for e in log
+                if str(e.get('date', ''))[:10] > entry})
+
+
+def build_sheet_payloads(state, today_lookup=None, context=None):
+    """state -> the exact row lists written to each tab.
+
+    Split out from update_sheet_mirror as a pure function so it can be tested
+    without gspread installed, without credentials and without network: the
+    formatting is where the bugs live, not in the API call.
+    """
+    today_lookup = today_lookup or {}
+    context = context or {}
+
+    # ---------------------------- Open_Positions ----------------------
+    open_rows = [['Sleeve', 'Symbol', 'Entry_Date', 'Sessions_Held', 'Shares',
+                  'Entry_Price', 'Last_Close', 'Stop_Price', 'Target_Price',
+                  'Pct_To_Stop', 'Pct_To_Target', 'Cost', 'Market_Value',
+                  'Unrealized_PnL', 'Unrealized_Pct']]
+
+    def _position_row(sleeve, sym, pos):
+        # _num, not `or 0`: bool(float('nan')) is True in Python, so
+        # `pos.get('shares') or 0` HANDS BACK THE NaN instead of replacing it,
+        # and a NaN share count then propagates into Market_Value, Unrealized
+        # and the JSON write. Same trap as the VIX_Spike lag.
+        shares = _num(pos.get('shares'))
+        entry_px = pos.get('entry_price')
+        cost = pos.get('net_cost')
+        if cost in (None, ''):
+            cost = shares * entry_px if (shares and entry_px) else None
+
+        last = (today_lookup.get(sym) or {}).get('CLOSE')
+        stop = pos.get('stop_price', '')      # MR carries neither
+        target = pos.get('target_price', '')
+
+        mv = shares * last if (last and shares) else None
+        unreal = mv - cost if (mv is not None and cost) else None
+        unreal_pct = unreal / cost * 100 if (unreal is not None and cost) else None
+        pct_stop = (last - stop) / last * 100 if (last and stop not in (None, '')) else None
+        pct_target = (target - last) / last * 100 if (last and target not in (None, '')) else None
+
+        return [sleeve, sym, _sheet_cell(pos.get('entry_date', '')),
+                _sessions_held(state, pos.get('entry_date', '')),
+                _sheet_cell(shares), _sheet_cell(entry_px), _sheet_cell(last),
+                _sheet_cell(stop), _sheet_cell(target),
+                _sheet_cell(pct_stop), _sheet_cell(pct_target),
+                _sheet_cell(cost), _sheet_cell(mv),
+                _sheet_cell(unreal), _sheet_cell(unreal_pct)]
+
+    for sym, pos in (state.get('active_bb') or {}).items():
+        open_rows.append(_position_row('Sniper', sym, pos))
+    for sym, pos in (state.get('active_mr') or {}).items():
+        open_rows.append(_position_row('MR', sym, pos))
+
+    # ---------------------------- Trade_Log ---------------------------
+    # state['closed_trades_log'] has been populated since day one and was
+    # never surfaced anywhere -- the whole trade history existed only inside
+    # the JSON state file.
+    trades = list(state.get('closed_trades_log') or [])
+    trades.sort(key=lambda t: (str(t.get('exit_date', '')), str(t.get('symbol', ''))))
+
+    log_rows = [['Exit_Date', 'Sleeve', 'Symbol', 'Entry_Date', 'Shares',
+                 'Entry_Price', 'Exit_Price', 'PnL', 'Return_Pct',
+                 'Exit_Reason', 'Cum_PnL']]
+    body, running = [], 0.0
+    for t in trades:
+        # _num throughout. A NaN pnl reaching `running` would not just blank one
+        # cell -- it would make Cum_PnL NaN for that row and EVERY row after it,
+        # because the accumulator itself becomes NaN. Realized PnL, Win Rate and
+        # Profit Factor below read the same field.
+        pnl = _num(t.get('pnl'))
+        running += pnl
+        shares = _num(t.get('shares'))
+        entry_px = _num(t.get('entry_price'))
+        basis = shares * entry_px
+        body.append([_sheet_cell(t.get('exit_date', '')), t.get('sleeve', ''),
+                     t.get('symbol', ''), _sheet_cell(t.get('entry_date', '')),
+                     _sheet_cell(shares),
+                     _sheet_cell(entry_px), _sheet_cell(t.get('exit_price')),
+                     _sheet_cell(pnl),
+                     _sheet_cell(pnl / basis * 100 if basis else None),
+                     t.get('exit_reason', ''), _sheet_cell(running)])
+    # Newest first so the useful end of the log is visible without scrolling.
+    # Cum_PnL was accumulated chronologically, so each row still shows the
+    # running total AS OF that trade.
+    log_rows.extend(reversed(body))
+
+    # ---------------------------- Equity_Summary -----------------------
+    # _num on every pnl read: a NaN would make `> 0` False and `<= 0` False, so
+    # the trade would vanish from BOTH gross_profit and gross_loss while still
+    # counting in len(trades) -- a silently wrong win rate and profit factor.
+    wins = [t for t in trades if _num(t.get('pnl')) > 0]
+    gross_profit = sum(_num(t.get('pnl')) for t in wins)
+    gross_loss = -sum(_num(t.get('pnl')) for t in trades if _num(t.get('pnl')) <= 0)
+
+    # Open risk: what walking every Sniper stop from here would cost. MR has no
+    # stop, so it contributes nothing and this understates total exposure --
+    # read it as "Sniper risk to stops", which is what it is called below.
+    open_risk = 0.0
+    for sym, pos in (state.get('active_bb') or {}).items():
+        last = _num((today_lookup.get(sym) or {}).get('CLOSE'))
+        stop = _num(pos.get('stop_price'))
+        if last and stop:
+            open_risk += max(0.0, (last - stop) * _num(pos.get('shares')))
+
+    summary_rows = [
+        ['Metric', 'Value'],
+        ['Last Updated', context.get('date', state.get('last_run_date', ''))],
+        ['Regime', context.get('regime', '')],
+        ['Market Breadth', _sheet_cell(context.get('breadth'))],
+        ['Vol Spike (Nifty ATR proxy)', str(context.get('vix_spike', ''))],
+        ['', ''],
+        ['Total Equity', _sheet_cell((state.get('bb_equity') or 0)
+                                     + (state.get('mr_equity') or 0))],
+        ['Sniper Equity', _sheet_cell(state.get('bb_equity'))],
+        ['MR Equity', _sheet_cell(state.get('mr_equity'))],
+        ['Sniper Cash', _sheet_cell(state.get('bb_cash'))],
+        ['MR Cash', _sheet_cell(state.get('mr_cash'))],
+        ['', ''],
+        ['Open Positions', len(state.get('active_bb') or {})
+                           + len(state.get('active_mr') or {})],
+        ['Sniper Risk to Stops', _sheet_cell(open_risk)],
+        ['', ''],
+        ['Closed Trades', len(trades)],
+        ['Realized PnL', _sheet_cell(gross_profit - gross_loss)],
+        ['Win Rate %', _sheet_cell(len(wins) / len(trades) * 100 if trades else None)],
+        ['Profit Factor', _sheet_cell(gross_profit / gross_loss) if gross_loss > 0
+                          else 'n/a (no losing trades yet)'],
+    ]
+
+    return {'Open_Positions': open_rows,
+            'Trade_Log': log_rows,
+            'Equity_Summary': summary_rows}
+
+
+def update_sheet_mirror(state, today_lookup=None, context=None):
     """Write-only Google Sheets dashboard. Never read back -- state JSON is
     the source of truth. If GCP_SA_JSON isn't configured, silently skip
-    (Sheets is a nice-to-have visibility layer, not a dependency)."""
+    (Sheets is a nice-to-have visibility layer, not a dependency).
+
+    Every tab is rewritten in full on every run rather than appended to. That
+    keeps the never-read-back invariant absolute: an append needs to know how
+    many rows are already there, which means reading the sheet, which is
+    exactly the coupling this design rejects. At roughly 100 trades a year the
+    full rewrite stays trivially small.
+    """
     if not GCP_SA_JSON:
         print("GCP_SA_JSON not configured, skipping Sheets mirror.")
         return
+
+    # Built before the try block on purpose: a formatting bug should surface as
+    # a real traceback, not get swallowed by the network-error handler below.
+    payloads = build_sheet_payloads(state, today_lookup, context)
+
     try:
         import gspread
         from google.oauth2.service_account import Credentials
         creds_dict = json.loads(GCP_SA_JSON)
-        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        scopes = ['https://www.googleapis.com/auth/spreadsheets',
+                  'https://www.googleapis.com/auth/drive']
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gc = gspread.authorize(creds)
         sh = gc.open('Janus Portfolio')
 
-        try:
-            ws = sh.worksheet('Open_Positions')
-        except gspread.WorksheetNotFound:
-            ws = sh.add_worksheet('Open_Positions', rows=100, cols=10)
-        ws.clear()
-        rows = [['Sleeve', 'Symbol', 'Entry_Date', 'Entry_Price', 'Shares', 'Stop_Price', 'Target_Price', 'Days_Held']]
-        for sym, pos in state['active_bb'].items():
-            rows.append(['Sniper', sym, pos['entry_date'], pos['entry_price'], pos['shares'],
-                         pos.get('stop_price', ''), pos.get('target_price', ''), ''])
-        for sym, pos in state['active_mr'].items():
-            rows.append(['MR', sym, pos['entry_date'], pos['entry_price'], pos['shares'],
-                         '', '', pos.get('trading_days', '')])
-        ws.update(rows)
+        for tab, rows in payloads.items():
+            n_rows = max(len(rows) + 20, 50)
+            n_cols = max(len(rows[0]), 2)
+            try:
+                ws = sh.worksheet(tab)
+                # Grow the grid BEFORE writing. add_worksheet's row count is a
+                # hard grid limit, not a hint, and ws.clear() does not resize;
+                # the old code created these tabs at rows=100, so the write
+                # would have started failing once the trade log outgrew that.
+                ws.resize(rows=n_rows, cols=n_cols)
+            except gspread.WorksheetNotFound:
+                ws = sh.add_worksheet(tab, rows=n_rows, cols=n_cols)
+            ws.clear()
+            ws.update(rows)
+            print(f"  Sheets: {tab} <- {len(rows) - 1} data row(s)")
 
-        try:
-            ws2 = sh.worksheet('Equity_Summary')
-        except gspread.WorksheetNotFound:
-            ws2 = sh.add_worksheet('Equity_Summary', rows=20, cols=5)
-        ws2.clear()
-        total_equity = state['bb_equity'] + state['mr_equity']
-        ws2.update([
-            ['Metric', 'Value'],
-            ['Total Equity', total_equity],
-            ['Sniper Equity', state['bb_equity']],
-            ['MR Equity', state['mr_equity']],
-            ['Last Updated', state.get('last_run_date', '')]
-        ])
         print("Sheet mirror updated.")
     except Exception as e:
         print(f"Sheet mirror update FAILED (non-fatal, continuing): {e}")
@@ -499,6 +905,13 @@ def main():
     target_date, window_df = update_master_data()
     print(f"Processing data for actual trading date: {target_date.date()}")
 
+    # --- DUPLICATE-RUN GUARD (finding #33) ---
+    # Placed as early as target_date is known, so a holiday run also
+    # skips the expensive signal computation. update_master_data above
+    # is safe to have already run: it dedupes on (DATE, SYMBOL).
+    if not is_new_trading_date(target_date):
+        return
+
     today_rows = compute_todays_signals(window_df, target_date)
     today_lookup = {r['SYMBOL']: r for r in today_rows}
     today_regime = today_rows[0].get('Regime_Label', 'NEUTRAL') if today_rows else 'NEUTRAL'
@@ -509,6 +922,16 @@ def main():
 
     state = load_state()
 
+    # Yield first, matching the engine order (yield -> rebalance ->
+    # exits -> entries). This is a no-op unless --run-guard is also
+    # applied: without the duplicate-run guard, a second run on the
+    # same bhavcopy would accrue a second time.
+    accrue_idle_yield(state, window_df, target_date)
+
+    # ORDER MATTERS -- must match wfo_engine.run_headless_simulation:
+    #   rebalance -> exits -> entries.
+    # See rebalance_allocation's docstring for why.
+    rebalance_allocation(state, today_regime, current_breadth)
     exit_events = evaluate_exits(state, today_lookup, today_regime, active_p, target_date)
     entry_events = evaluate_entries(state, today_rows, today_lookup, today_regime, current_breadth, active_p, target_date)
 
@@ -536,7 +959,12 @@ def main():
     report = "\n".join(report_lines)
     print(report)
     send_telegram(report)
-    update_sheet_mirror(state)
+    update_sheet_mirror(state, today_lookup, {
+        'date': str(target_date.date()),
+        'regime': today_regime,
+        'breadth': current_breadth,
+        'vix_spike': today_rows[0].get('VIX_Spike', False) if today_rows else False,
+    })
 
     print("\nPipeline run complete.")
 
