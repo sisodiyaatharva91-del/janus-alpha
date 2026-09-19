@@ -1,180 +1,19 @@
 {
-  "bb_cash": 66833.29173071434,
-  "bb_equity": 120165.34173071434,
-  "mr_cash": 480661.36692285736,
-  "mr_equity": 480661.36692285736,
-  "active_bb": {
-    "AEGISLOG": {
-      "entry_date": "2026-08-17",
-      "entry_price": 1266.0,
-      "shares": 14,
-      "net_cost": 17724.0,
-      "stop_price": 1104.3428571428572,
-      "target_price": 1533.0857142857144,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.6363636363636364
-    },
-    "KALYANKJIL": {
-      "entry_date": "2026-08-25",
-      "entry_price": 607.95,
-      "shares": 29,
-      "net_cost": 17630.550000000003,
-      "stop_price": 555.5757142857143,
-      "target_price": 694.4814285714286,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.6546961325966851
-    },
-    "HFCL": {
-      "entry_date": "2026-08-25",
-      "entry_price": 239.7,
-      "shares": 75,
-      "net_cost": 17977.5,
-      "stop_price": 218.48414285714284,
-      "target_price": 274.7522857142857,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.6546961325966851
-    }
-  },
+  "bb_equity": 300000.0,
+  "bb_cash": 300000.0,
+  "mr_equity": 300000.0,
+  "mr_cash": 300000.0,
+  "active_bb": {},
   "active_mr": {},
-  "closed_trades_log": [
-    {
-      "sleeve": "Sniper",
-      "symbol": "CARTRADE",
-      "entry_date": "2026-08-17",
-      "exit_date": "2026-08-21",
-      "entry_price": 2792.0,
-      "exit_price": 3155.578571428571,
-      "shares": 6,
-      "pnl": 2133.0712214285704,
-      "exit_reason": "target_hit"
-    },
-    {
-      "sleeve": "Sniper",
-      "symbol": "CARTRADE",
-      "entry_date": "2026-08-21",
-      "exit_date": "2026-08-26",
-      "entry_price": 2893.0,
-      "exit_price": 3142.2,
-      "shares": 6,
-      "pnl": 1446.9201999999968,
-      "exit_reason": "exhaustion_exit"
-    },
-    {
-      "sleeve": "Sniper",
-      "symbol": "LODHA",
-      "entry_date": "2026-08-25",
-      "exit_date": "2026-09-01",
-      "entry_price": 1257.5,
-      "exit_price": 1182.3064285714286,
-      "shares": 14,
-      "pnl": -1097.5384349999986,
-      "exit_reason": "stop_hit"
-    },
-    {
-      "sleeve": "Sniper",
-      "symbol": "PARAS",
-      "entry_date": "2026-08-17",
-      "exit_date": "2026-09-16",
-      "entry_price": 1383.5,
-      "exit_price": 1259.5628571428572,
-      "shares": 13,
-      "pnl": -1655.7443328571408,
-      "exit_reason": "stop_hit"
-    }
-  ],
-  "equity_curve_log": [
-    {
-      "date": "2026-08-17",
-      "total_equity": 600000.0
-    },
-    {
-      "date": "2026-08-17",
-      "total_equity": 600000.0
-    },
-    {
-      "date": "2026-08-21",
-      "total_equity": 602133.0712214286
-    },
-    {
-      "date": "2026-08-21",
-      "total_equity": 602133.0712214286
-    },
-    {
-      "date": "2026-08-24",
-      "total_equity": 602133.0712214286
-    },
-    {
-      "date": "2026-08-25",
-      "total_equity": 602133.0712214286
-    },
-    {
-      "date": "2026-08-26",
-      "total_equity": 603579.9914214286
-    },
-    {
-      "date": "2026-08-27",
-      "total_equity": 603579.9914214286
-    },
-    {
-      "date": "2026-08-28",
-      "total_equity": 603579.9914214286
-    },
-    {
-      "date": "2026-08-31",
-      "total_equity": 603579.9914214286
-    },
-    {
-      "date": "2026-09-01",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-02",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-03",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-04",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-07",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-08",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-09",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-10",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-11",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-11",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-15",
-      "total_equity": 602482.4529864287
-    },
-    {
-      "date": "2026-09-16",
-      "total_equity": 600826.7086535717
-    },
-    {
-      "date": "2026-09-17",
-      "total_equity": 600826.7086535717
-    }
-  ],
-  "last_run_date": "2026-09-17"
+  "closed_trades_log": [],
+  "equity_curve_log": [],
+  "last_run_date": "",
+  "_reset_metadata": {
+    "reset_at_utc": "2026-09-19T09:47:46+00:00",
+    "reset_by": "reset_paper_state.py",
+    "start_capital": 600000,
+    "reason": "Reset after the 2026-08-22 audit. The prior state was produced under findings #26 (Sniper look-ahead in entry price, stop distance and position size), #27 (exits ordered before the allocation rebalance), #33 (no duplicate-session guard) and a 6%/365 idle-yield basis. Its equity curve is not comparable with anything recorded after this point.",
+    "archived_previous_to": "state\\archive\\paper_portfolio_state.20260919T094746Z.contaminated.json",
+    "discontinuity": "Do NOT splice equity_curve_log across this point. The pre-reset curve was generated by different entry timing, a different rebalance order and a different yield basis."
+  }
 }

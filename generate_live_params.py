@@ -40,6 +40,18 @@ VALIDATION_YEARS = 1
 ITERATIONS = 1000
 START_CAPITAL = 600000
 SLIPPAGE_TAX_PCT = 0.15
+
+# COPY PARITY FIX 2026-08-22 -- finding #34.
+# These four MUST equal their namesakes in wfo_engine_updated.py. This file
+# keeps its own copy of run_headless_simulation and calculate_fitness, and
+# those copies had already drifted once: the engine got the idle-yield and CAGR
+# units fixes and this file did not, so the params written to live_params.json
+# were being SELECTED under different arithmetic than the WFO validated.
+# test_engine_copy_parity.py now fails if the two copies diverge again.
+TRADING_DAYS_PER_YEAR = 252        # == wfo_engine_updated.TRADING_DAYS_PER_YEAR
+IDLE_YIELD_PCT = 4.0               # == wfo_engine_updated.IDLE_YIELD_PCT
+MAX_GAP_LOSS_PCT = 0.03            # == wfo_engine_updated.MAX_GAP_LOSS_PCT
+ASSUMED_WORST_CASE_GAP_PCT = 0.20  # == wfo_engine_updated.ASSUMED_WORST_CASE_GAP_PCT
 RANDOM_SEED = 42  # keep fixed for reproducibility; document if you ever change it
 OUTPUT_PATH = 'live_params.json'
 
@@ -50,9 +62,18 @@ np.random.seed(RANDOM_SEED)
 
 
 def run_headless_simulation(p, daily_data, calendar_dates):
-    """Identical logic to wfo_engine_updated.py -- kept in sync manually.
-    TODO: extract to a shared module both scripts import, to eliminate the
-    risk of these two copies drifting apart over time."""
+    """A COPY of wfo_engine_updated.run_headless_simulation.
+
+    Verified equivalent to the engine's version on 2026-08-22 by a
+    comment-stripped diff: same 7-tuple return, same logic, differing only in
+    line-splitting and in a total_pnl accumulator the engine never returns.
+
+    The previous version of this docstring said "kept in sync manually", and it
+    was not: the engine received the idle-yield and CAGR units fixes and this
+    copy did not (finding #34). Do NOT trust the claim of equivalence above --
+    run test_engine_copy_parity.py, which re-derives it mechanically. If you
+    edit either copy, that test tells you immediately; if you finally extract a
+    shared module, delete the test along with the duplicate."""
     bb_equity, mr_equity = p['start_cap'] * 0.5, p['start_cap'] * 0.5
     bb_cash, mr_cash = bb_equity, mr_equity
     active_bb, active_mr = {}, {}
@@ -60,7 +81,9 @@ def run_headless_simulation(p, daily_data, calendar_dates):
     gross_profits, gross_losses = 0.0, 0.0
     bb_trades, mr_trades = 0, 0
     equity_curve = []
-    daily_yield_rate = (p['idle_yield'] / 100) / 365
+    # / TRADING_DAYS_PER_YEAR, not / 365: applied once per element of
+    # calendar_dates, and those are TRADING days.
+    daily_yield_rate = (p['idle_yield'] / 100) / TRADING_DAYS_PER_YEAR
 
     for current_date in calendar_dates:
         bb_yld = max(0, bb_cash) * daily_yield_rate
@@ -150,7 +173,8 @@ def run_headless_simulation(p, daily_data, calendar_dates):
                 stop, tgt = row['OPEN'] - (active_p['bb_stop'] * atr), row['OPEN'] + (active_p['bb_tgt'] * atr)
                 if (risk := row['OPEN'] - stop) <= 0: continue
                 cap_limit = row.get('Turnover_SMA_50', 1e12) * 0.05
-                gap_safe_shares = int((bb_equity * 0.03) / (row['OPEN'] * 0.20))
+                gap_safe_shares = int((bb_equity * MAX_GAP_LOSS_PCT)
+                                      / (row['OPEN'] * ASSUMED_WORST_CASE_GAP_PCT))
                 shares = min(int((bb_equity * (active_p['bb_risk'] / 100)) / risk), int((bb_equity * 0.20) / row['OPEN']), int(cap_limit / row['OPEN']), gap_safe_shares)
                 if shares > 0 and bb_cash >= (cost := shares * row['OPEN']):
                     bb_cash -= cost
@@ -166,7 +190,13 @@ def calculate_fitness(eq_curve, wins, losses, gross_profits, gross_losses):
     eq_series = pd.Series(eq_curve)
     pct_returns = eq_series.pct_change().dropna()
     days = len(eq_curve)
-    cagr = ((eq_series.iloc[-1] / eq_series.iloc[0]) ** (365.25 / days) - 1) * 100
+    # `days` counts TRADING days, so annualize on a 252-day year. The old
+    # 365.25/days inflated a true 14.17% into 21.18% and, worse, pushed
+    # candidates into the norm_sortino cap where selection stops
+    # discriminating on risk. See test_cagr_units.py TEST 3.
+    years = days / TRADING_DAYS_PER_YEAR
+    cagr = (((eq_series.iloc[-1] / eq_series.iloc[0]) ** (1 / years) - 1) * 100
+            if years > 0 else 0.0)
     dd = ((eq_series - eq_series.cummax()) / eq_series.cummax()).min() * 100
     downside_std = pct_returns[pct_returns < 0].std() * np.sqrt(252)
     sortino = (cagr / 100) / downside_std if downside_std > 0 else 0
@@ -210,7 +240,7 @@ def main():
 
     for i in range(ITERATIONS):
         p = {
-            'start_cap': START_CAPITAL, 'slip_tax': SLIPPAGE_TAX_PCT, 'idle_yield': 6.0,
+            'start_cap': START_CAPITAL, 'slip_tax': SLIPPAGE_TAX_PCT, 'idle_yield': IDLE_YIELD_PCT,
             'bull': {
                 'bb_tgt': round(random.uniform(2.5, 6.0), 1), 'bb_stop': round(random.uniform(1.5, 3.0), 1),
                 'bb_risk': round(random.uniform(1.5, 3.5), 1), 'mr_time': random.randint(3, 7),
