@@ -1,13 +1,29 @@
 {
-  "bb_equity": 300000.0,
-  "bb_cash": 300000.0,
-  "mr_equity": 300000.0,
-  "mr_cash": 300000.0,
-  "active_bb": {},
+  "bb_equity": 120019.04761904763,
+  "bb_cash": 102043.04761904763,
+  "mr_equity": 480076.19047619053,
+  "mr_cash": 480076.19047619053,
+  "active_bb": {
+    "QPOWER": {
+      "entry_date": "2026-09-18",
+      "entry_price": 1498.0,
+      "shares": 12,
+      "net_cost": 17976.0,
+      "stop_price": 1343.0007142857144,
+      "target_price": 1856.9457142857143,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.3835616438356164
+    }
+  },
   "active_mr": {},
   "closed_trades_log": [],
-  "equity_curve_log": [],
-  "last_run_date": "",
+  "equity_curve_log": [
+    {
+      "date": "2026-09-18",
+      "total_equity": 600095.2380952381
+    }
+  ],
+  "last_run_date": "2026-09-18",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
