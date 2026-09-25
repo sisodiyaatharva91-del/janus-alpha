@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120074.49634693943,
-  "bb_cash": 102098.49634693943,
-  "mr_equity": 480297.9853877577,
-  "mr_cash": 480297.9853877577,
+  "bb_equity": 120092.98512413737,
+  "bb_cash": 66729.68512413737,
+  "mr_equity": 480371.9404965495,
+  "mr_cash": 480371.9404965495,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -13,6 +13,26 @@
       "target_price": 1856.9457142857143,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.3835616438356164
+    },
+    "TFCILTD": {
+      "entry_date": "2026-09-24",
+      "entry_price": 140.9,
+      "shares": 127,
+      "net_cost": 17894.3,
+      "stop_price": 132.69064285714285,
+      "target_price": 159.91114285714286,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.5204359673024523
+    },
+    "KALYANKJIL": {
+      "entry_date": "2026-09-24",
+      "entry_price": 583.1,
+      "shares": 30,
+      "net_cost": 17493.0,
+      "stop_price": 550.61,
+      "target_price": 658.3400000000001,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.5204359673024523
     }
   },
   "active_mr": {},
@@ -33,9 +53,13 @@
     {
       "date": "2026-09-23",
       "total_equity": 600372.4817346971
+    },
+    {
+      "date": "2026-09-24",
+      "total_equity": 600464.9256206868
     }
   ],
-  "last_run_date": "2026-09-23",
+  "last_run_date": "2026-09-24",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
