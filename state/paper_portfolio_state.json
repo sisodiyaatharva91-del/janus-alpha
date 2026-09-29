@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120110.35342971265,
-  "bb_cash": 66747.05342971264,
-  "mr_equity": 480441.4137188506,
-  "mr_cash": 480441.4137188506,
+  "bb_equity": 120127.72449216183,
+  "bb_cash": 66764.42449216182,
+  "mr_equity": 480510.8979686473,
+  "mr_cash": 264147.45796864736,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -35,7 +35,36 @@
       "breadth_at_entry": 0.5204359673024523
     }
   },
-  "active_mr": {},
+  "active_mr": {
+    "ADANIENSOL": {
+      "entry_date": "2026-09-28",
+      "entry_price": 1287.9,
+      "shares": 42,
+      "net_cost": 54091.8,
+      "trading_days": 0
+    },
+    "DCBBANK": {
+      "entry_date": "2026-09-28",
+      "entry_price": 207.46,
+      "shares": 264,
+      "net_cost": 54769.44,
+      "trading_days": 0
+    },
+    "GLENMARK": {
+      "entry_date": "2026-09-28",
+      "entry_price": 2325.7,
+      "shares": 23,
+      "net_cost": 53491.1,
+      "trading_days": 0
+    },
+    "POLYMED": {
+      "entry_date": "2026-09-28",
+      "entry_price": 1636.7,
+      "shares": 33,
+      "net_cost": 54011.1,
+      "trading_days": 0
+    }
+  },
   "closed_trades_log": [],
   "equity_curve_log": [
     {
@@ -61,9 +90,13 @@
     {
       "date": "2026-09-25",
       "total_equity": 600551.7671485632
+    },
+    {
+      "date": "2026-09-28",
+      "total_equity": 600638.6224608091
     }
   ],
-  "last_run_date": "2026-09-25",
+  "last_run_date": "2026-09-28",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
