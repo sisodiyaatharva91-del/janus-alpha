@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120138.22963128758,
-  "bb_cash": 66774.92963128758,
-  "mr_equity": 483112.0867751503,
-  "mr_cash": 320239.7467751504,
+  "bb_equity": 120662.34946149097,
+  "bb_cash": 67299.04946149097,
+  "mr_equity": 482649.3978459639,
+  "mr_cash": 319777.057845964,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -41,21 +41,21 @@
       "entry_price": 1287.9,
       "shares": 42,
       "net_cost": 54091.8,
-      "trading_days": 1
+      "trading_days": 2
     },
     "DCBBANK": {
       "entry_date": "2026-09-28",
       "entry_price": 207.46,
       "shares": 264,
       "net_cost": 54769.44,
-      "trading_days": 1
+      "trading_days": 2
     },
     "POLYMED": {
       "entry_date": "2026-09-28",
       "entry_price": 1636.7,
       "shares": 33,
       "net_cost": 54011.1,
-      "trading_days": 1
+      "trading_days": 2
     }
   },
   "closed_trades_log": [
@@ -103,9 +103,13 @@
     {
       "date": "2026-09-29",
       "total_equity": 603250.3164064379
+    },
+    {
+      "date": "2026-09-30",
+      "total_equity": 603311.7473074548
     }
   ],
-  "last_run_date": "2026-09-29",
+  "last_run_date": "2026-09-30",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
