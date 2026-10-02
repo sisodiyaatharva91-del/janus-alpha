@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120662.34946149097,
-  "bb_cash": 67299.04946149097,
-  "mr_equity": 482649.3978459639,
-  "mr_cash": 319777.057845964,
+  "bb_equity": 119655.16014188167,
+  "bb_cash": 83784.86014188167,
+  "mr_equity": 484211.98716752673,
+  "mr_cash": 375431.4471675268,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -23,39 +23,22 @@
       "target_price": 159.91114285714286,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.5204359673024523
-    },
-    "KALYANKJIL": {
-      "entry_date": "2026-09-24",
-      "entry_price": 583.1,
-      "shares": 30,
-      "net_cost": 17493.0,
-      "stop_price": 550.61,
-      "target_price": 658.3400000000001,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.5204359673024523
     }
   },
   "active_mr": {
-    "ADANIENSOL": {
-      "entry_date": "2026-09-28",
-      "entry_price": 1287.9,
-      "shares": 42,
-      "net_cost": 54091.8,
-      "trading_days": 2
-    },
     "DCBBANK": {
       "entry_date": "2026-09-28",
       "entry_price": 207.46,
       "shares": 264,
       "net_cost": 54769.44,
-      "trading_days": 2
+      "trading_days": 3
     },
     "POLYMED": {
       "entry_date": "2026-09-28",
       "entry_price": 1636.7,
       "shares": 33,
       "net_cost": 54011.1,
-      "trading_days": 2
+      "trading_days": 3
     }
   },
   "closed_trades_log": [
@@ -68,6 +51,28 @@
       "exit_price": 2441.5,
       "shares": 23,
       "pnl": 2559.1682500000024,
+      "exit_reason": "sma5_cross"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "KALYANKJIL",
+      "entry_date": "2026-09-24",
+      "exit_date": "2026-10-01",
+      "entry_price": 583.1,
+      "exit_price": 550.61,
+      "shares": 30,
+      "pnl": -1019.4774500000021,
+      "exit_reason": "stop_hit"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "ADANIENSOL",
+      "entry_date": "2026-09-28",
+      "exit_date": "2026-10-01",
+      "entry_price": 1287.9,
+      "exit_price": 1326.4,
+      "shares": 42,
+      "pnl": 1513.4368000000031,
       "exit_reason": "sma5_cross"
     }
   ],
@@ -107,9 +112,13 @@
     {
       "date": "2026-09-30",
       "total_equity": 603311.7473074548
+    },
+    {
+      "date": "2026-10-01",
+      "total_equity": 603867.1473094084
     }
   ],
-  "last_run_date": "2026-09-30",
+  "last_run_date": "2026-10-01",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
