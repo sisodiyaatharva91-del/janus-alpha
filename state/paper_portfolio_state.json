@@ -1,8 +1,8 @@
 {
-  "bb_equity": 119655.16014188167,
-  "bb_cash": 83784.86014188167,
-  "mr_equity": 484211.98716752673,
-  "mr_cash": 375431.4471675268,
+  "bb_equity": 120788.00775735184,
+  "bb_cash": 84917.70775735183,
+  "mr_equity": 479723.00626940734,
+  "mr_cash": 479723.0062694074,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -25,22 +25,7 @@
       "breadth_at_entry": 0.5204359673024523
     }
   },
-  "active_mr": {
-    "DCBBANK": {
-      "entry_date": "2026-09-28",
-      "entry_price": 207.46,
-      "shares": 264,
-      "net_cost": 54769.44,
-      "trading_days": 3
-    },
-    "POLYMED": {
-      "entry_date": "2026-09-28",
-      "entry_price": 1636.7,
-      "shares": 33,
-      "net_cost": 54011.1,
-      "trading_days": 3
-    }
-  },
+  "active_mr": {},
   "closed_trades_log": [
     {
       "sleeve": "MR",
@@ -74,6 +59,28 @@
       "shares": 42,
       "pnl": 1513.4368000000031,
       "exit_reason": "sma5_cross"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "DCBBANK",
+      "entry_date": "2026-09-28",
+      "exit_date": "2026-10-05",
+      "entry_price": 207.46,
+      "exit_price": 197.36,
+      "shares": 264,
+      "pnl": -2764.554560000004,
+      "exit_reason": "time_stop_loss"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "POLYMED",
+      "entry_date": "2026-09-28",
+      "exit_date": "2026-10-05",
+      "entry_price": 1636.7,
+      "exit_price": 1619.6,
+      "shares": 33,
+      "pnl": -664.4702000000034,
+      "exit_reason": "time_stop_loss"
     }
   ],
   "equity_curve_log": [
@@ -116,9 +123,13 @@
     {
       "date": "2026-10-01",
       "total_equity": 603867.1473094084
+    },
+    {
+      "date": "2026-10-05",
+      "total_equity": 600511.0140267592
     }
   ],
-  "last_run_date": "2026-10-01",
+  "last_run_date": "2026-10-05",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
