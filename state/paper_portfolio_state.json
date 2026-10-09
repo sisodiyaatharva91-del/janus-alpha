@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120138.05585467136,
-  "bb_cash": 84267.75585467136,
-  "mr_equity": 480552.22341868543,
-  "mr_cash": 480552.2234186855,
+  "bb_equity": 120155.98664766418,
+  "bb_cash": 84285.68664766417,
+  "mr_equity": 480623.9465906567,
+  "mr_cash": 211033.59659065676,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -25,7 +25,43 @@
       "breadth_at_entry": 0.5204359673024523
     }
   },
-  "active_mr": {},
+  "active_mr": {
+    "GLAXO": {
+      "entry_date": "2026-10-08",
+      "entry_price": 2534.4,
+      "shares": 21,
+      "net_cost": 53222.4,
+      "trading_days": 0
+    },
+    "LUMAXTECH": {
+      "entry_date": "2026-10-08",
+      "entry_price": 1770.2,
+      "shares": 30,
+      "net_cost": 53106.0,
+      "trading_days": 0
+    },
+    "MAHSEAMLES": {
+      "entry_date": "2026-10-08",
+      "entry_price": 644.25,
+      "shares": 85,
+      "net_cost": 54761.25,
+      "trading_days": 0
+    },
+    "MANINFRA": {
+      "entry_date": "2026-10-08",
+      "entry_price": 117.74,
+      "shares": 465,
+      "net_cost": 54749.1,
+      "trading_days": 0
+    },
+    "TVSMOTOR": {
+      "entry_date": "2026-10-08",
+      "entry_price": 3839.4,
+      "shares": 14,
+      "net_cost": 53751.6,
+      "trading_days": 0
+    }
+  },
   "closed_trades_log": [
     {
       "sleeve": "MR",
@@ -135,9 +171,13 @@
     {
       "date": "2026-10-07",
       "total_equity": 600690.2792733568
+    },
+    {
+      "date": "2026-10-08",
+      "total_equity": 600779.9332383209
     }
   ],
-  "last_run_date": "2026-10-07",
+  "last_run_date": "2026-10-08",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
