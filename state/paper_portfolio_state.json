@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120165.36186300508,
-  "bb_cash": 84295.06186300507,
-  "mr_equity": 480661.4474520203,
-  "mr_cash": 211071.09745202036,
+  "bb_equity": 120174.73856647541,
+  "bb_cash": 84304.43856647541,
+  "mr_equity": 483883.18346590165,
+  "mr_cash": 321150.4334659017,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -31,35 +31,21 @@
       "entry_price": 2534.4,
       "shares": 21,
       "net_cost": 53222.4,
-      "trading_days": 1
-    },
-    "LUMAXTECH": {
-      "entry_date": "2026-10-08",
-      "entry_price": 1770.2,
-      "shares": 30,
-      "net_cost": 53106.0,
-      "trading_days": 1
+      "trading_days": 2
     },
     "MAHSEAMLES": {
       "entry_date": "2026-10-08",
       "entry_price": 644.25,
       "shares": 85,
       "net_cost": 54761.25,
-      "trading_days": 1
+      "trading_days": 2
     },
     "MANINFRA": {
       "entry_date": "2026-10-08",
       "entry_price": 117.74,
       "shares": 465,
       "net_cost": 54749.1,
-      "trading_days": 1
-    },
-    "TVSMOTOR": {
-      "entry_date": "2026-10-08",
-      "entry_price": 3839.4,
-      "shares": 14,
-      "net_cost": 53751.6,
-      "trading_days": 1
+      "trading_days": 2
     }
   },
   "closed_trades_log": [
@@ -117,6 +103,28 @@
       "shares": 33,
       "pnl": -664.4702000000034,
       "exit_reason": "time_stop_loss"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "LUMAXTECH",
+      "entry_date": "2026-10-08",
+      "exit_date": "2026-10-12",
+      "entry_price": 1770.2,
+      "exit_price": 1836.1,
+      "shares": 30,
+      "pnl": 1874.375500000002,
+      "exit_reason": "sma5_cross"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "TVSMOTOR",
+      "entry_date": "2026-10-08",
+      "exit_date": "2026-10-12",
+      "entry_price": 3839.4,
+      "exit_price": 3940.3,
+      "shares": 14,
+      "pnl": 1309.853700000007,
+      "exit_reason": "sma5_cross"
     }
   ],
   "equity_curve_log": [
@@ -179,9 +187,13 @@
     {
       "date": "2026-10-09",
       "total_equity": 600826.8093150253
+    },
+    {
+      "date": "2026-10-12",
+      "total_equity": 604057.9220323771
     }
   ],
-  "last_run_date": "2026-10-09",
+  "last_run_date": "2026-10-12",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
