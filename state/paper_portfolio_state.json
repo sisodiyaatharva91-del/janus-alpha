@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120174.73856647541,
-  "bb_cash": 84304.43856647541,
-  "mr_equity": 483883.18346590165,
-  "mr_cash": 321150.4334659017,
+  "bb_equity": 120824.45598971455,
+  "bb_cash": 84954.15598971455,
+  "mr_equity": 483297.8239588582,
+  "mr_cash": 320565.07395885827,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -31,21 +31,21 @@
       "entry_price": 2534.4,
       "shares": 21,
       "net_cost": 53222.4,
-      "trading_days": 2
+      "trading_days": 3
     },
     "MAHSEAMLES": {
       "entry_date": "2026-10-08",
       "entry_price": 644.25,
       "shares": 85,
       "net_cost": 54761.25,
-      "trading_days": 2
+      "trading_days": 3
     },
     "MANINFRA": {
       "entry_date": "2026-10-08",
       "entry_price": 117.74,
       "shares": 465,
       "net_cost": 54749.1,
-      "trading_days": 2
+      "trading_days": 3
     }
   },
   "closed_trades_log": [
@@ -191,9 +191,13 @@
     {
       "date": "2026-10-12",
       "total_equity": 604057.9220323771
+    },
+    {
+      "date": "2026-10-13",
+      "total_equity": 604122.2799485727
     }
   ],
-  "last_run_date": "2026-10-12",
+  "last_run_date": "2026-10-13",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
