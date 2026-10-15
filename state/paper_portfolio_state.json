@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120824.45598971455,
-  "bb_cash": 84954.15598971455,
-  "mr_equity": 483297.8239588582,
-  "mr_cash": 320565.07395885827,
+  "bb_equity": 123201.281686205,
+  "bb_cash": 105225.281686205,
+  "mr_equity": 479060.65516424854,
+  "mr_cash": 479060.65516424866,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -13,41 +13,9 @@
       "target_price": 1856.9457142857143,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.3835616438356164
-    },
-    "TFCILTD": {
-      "entry_date": "2026-09-24",
-      "entry_price": 140.9,
-      "shares": 127,
-      "net_cost": 17894.3,
-      "stop_price": 132.69064285714285,
-      "target_price": 159.91114285714286,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.5204359673024523
     }
   },
-  "active_mr": {
-    "GLAXO": {
-      "entry_date": "2026-10-08",
-      "entry_price": 2534.4,
-      "shares": 21,
-      "net_cost": 53222.4,
-      "trading_days": 3
-    },
-    "MAHSEAMLES": {
-      "entry_date": "2026-10-08",
-      "entry_price": 644.25,
-      "shares": 85,
-      "net_cost": 54761.25,
-      "trading_days": 3
-    },
-    "MANINFRA": {
-      "entry_date": "2026-10-08",
-      "entry_price": 117.74,
-      "shares": 465,
-      "net_cost": 54749.1,
-      "trading_days": 3
-    }
-  },
+  "active_mr": {},
   "closed_trades_log": [
     {
       "sleeve": "MR",
@@ -125,6 +93,50 @@
       "shares": 14,
       "pnl": 1309.853700000007,
       "exit_reason": "sma5_cross"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "TFCILTD",
+      "entry_date": "2026-09-24",
+      "exit_date": "2026-10-14",
+      "entry_price": 140.9,
+      "exit_price": 159.91114285714286,
+      "shares": 127,
+      "pnl": 2363.952070142859,
+      "exit_reason": "target_hit"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "GLAXO",
+      "entry_date": "2026-10-08",
+      "exit_date": "2026-10-14",
+      "entry_price": 2534.4,
+      "exit_price": 2538.9,
+      "shares": 21,
+      "pnl": -5.475350000000617,
+      "exit_reason": "sma5_cross"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "MAHSEAMLES",
+      "entry_date": "2026-10-08",
+      "exit_date": "2026-10-14",
+      "entry_price": 644.25,
+      "exit_price": 605.6,
+      "shares": 85,
+      "pnl": -3382.464,
+      "exit_reason": "time_stop_loss"
+    },
+    {
+      "sleeve": "MR",
+      "symbol": "MANINFRA",
+      "entry_date": "2026-10-08",
+      "exit_date": "2026-10-14",
+      "entry_price": 117.74,
+      "exit_price": 116.02,
+      "shares": 465,
+      "pnl": -900.7239499999996,
+      "exit_reason": "time_stop_loss"
     }
   ],
   "equity_curve_log": [
@@ -195,9 +207,13 @@
     {
       "date": "2026-10-13",
       "total_equity": 604122.2799485727
+    },
+    {
+      "date": "2026-10-14",
+      "total_equity": 602261.9368504535
     }
   ],
-  "last_run_date": "2026-10-13",
+  "last_run_date": "2026-10-14",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
