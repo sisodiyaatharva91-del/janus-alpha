@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120526.60007704588,
-  "bb_cash": 102550.60007704588,
-  "mr_equity": 482106.4003081835,
-  "mr_cash": 482106.4003081836,
+  "bb_equity": 120545.16061674066,
+  "bb_cash": 102569.16061674066,
+  "mr_equity": 482180.6424669626,
+  "mr_cash": 482180.64246696274,
   "active_bb": {
     "QPOWER": {
       "entry_date": "2026-09-18",
@@ -227,9 +227,13 @@
     {
       "date": "2026-10-21",
       "total_equity": 602633.0003852294
+    },
+    {
+      "date": "2026-10-22",
+      "total_equity": 602725.8030837033
     }
   ],
-  "last_run_date": "2026-10-21",
+  "last_run_date": "2026-10-22",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
