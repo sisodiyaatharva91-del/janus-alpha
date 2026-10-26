@@ -1,18 +1,18 @@
 {
-  "bb_equity": 120545.16061674066,
-  "bb_cash": 102569.16061674066,
-  "mr_equity": 482180.6424669626,
-  "mr_cash": 482180.64246696274,
+  "bb_equity": 118659.55866112428,
+  "bb_cash": 100942.15866112427,
+  "mr_equity": 482254.8964102114,
+  "mr_cash": 482254.8964102115,
   "active_bb": {
-    "QPOWER": {
-      "entry_date": "2026-09-18",
-      "entry_price": 1498.0,
-      "shares": 12,
-      "net_cost": 17976.0,
-      "stop_price": 1343.0007142857144,
-      "target_price": 1856.9457142857143,
+    "RATNAVEER": {
+      "entry_date": "2026-10-23",
+      "entry_price": 328.1,
+      "shares": 54,
+      "net_cost": 17717.4,
+      "stop_price": 294.72107142857146,
+      "target_price": 405.3985714285715,
       "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.3835616438356164
+      "breadth_at_entry": 0.19946808510638298
     }
   },
   "active_mr": {},
@@ -137,6 +137,17 @@
       "shares": 465,
       "pnl": -900.7239499999996,
       "exit_reason": "time_stop_loss"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "QPOWER",
+      "entry_date": "2026-09-18",
+      "exit_date": "2026-10-23",
+      "entry_price": 1498.0,
+      "exit_price": 1343.0007142857144,
+      "shares": 12,
+      "pnl": -1904.1654414285713,
+      "exit_reason": "stop_hit"
     }
   ],
   "equity_curve_log": [
@@ -231,9 +242,13 @@
     {
       "date": "2026-10-22",
       "total_equity": 602725.8030837033
+    },
+    {
+      "date": "2026-10-23",
+      "total_equity": 600914.4550713357
     }
   ],
-  "last_run_date": "2026-10-22",
+  "last_run_date": "2026-10-23",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
