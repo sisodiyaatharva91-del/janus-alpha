@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120238.44240768913,
-  "bb_cash": 102521.04240768912,
-  "mr_equity": 480953.7696307565,
-  "mr_cash": 480953.76963075664,
+  "bb_equity": 120256.96541759511,
+  "bb_cash": 102539.5654175951,
+  "mr_equity": 481027.86167038046,
+  "mr_cash": 481027.8616703806,
   "active_bb": {
     "RATNAVEER": {
       "entry_date": "2026-10-23",
@@ -258,9 +258,13 @@
     {
       "date": "2026-10-28",
       "total_equity": 601192.2120384456
+    },
+    {
+      "date": "2026-10-29",
+      "total_equity": 601284.8270879756
     }
   ],
-  "last_run_date": "2026-10-28",
+  "last_run_date": "2026-10-29",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
