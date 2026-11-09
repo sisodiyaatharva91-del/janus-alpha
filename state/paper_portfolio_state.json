@@ -1,8 +1,8 @@
 {
-  "bb_equity": 120349.6245788646,
-  "bb_cash": 102632.2245788646,
-  "mr_equity": 481398.4983154584,
-  "mr_cash": 481398.49831545854,
+  "bb_equity": 120368.16523673428,
+  "bb_cash": 66609.84523673427,
+  "mr_equity": 481472.6609469371,
+  "mr_cash": 481472.6609469372,
   "active_bb": {
     "RATNAVEER": {
       "entry_date": "2026-10-23",
@@ -13,6 +13,26 @@
       "target_price": 405.3985714285715,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.19946808510638298
+    },
+    "SBC": {
+      "entry_date": "2026-11-08",
+      "entry_price": 69.3,
+      "shares": 260,
+      "net_cost": 18018.0,
+      "stop_price": 65.41992857142857,
+      "target_price": 78.28542857142857,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.5989847715736041
+    },
+    "FCL": {
+      "entry_date": "2026-11-08",
+      "entry_price": 51.79,
+      "shares": 348,
+      "net_cost": 18022.92,
+      "stop_price": 46.30985714285714,
+      "target_price": 64.48085714285713,
+      "regime_at_entry": "BEAR",
+      "breadth_at_entry": 0.5989847715736041
     }
   },
   "active_mr": {},
@@ -282,9 +302,13 @@
     {
       "date": "2026-11-05",
       "total_equity": 601748.122894323
+    },
+    {
+      "date": "2026-11-08",
+      "total_equity": 601840.8261836714
     }
   ],
-  "last_run_date": "2026-11-05",
+  "last_run_date": "2026-11-08",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
