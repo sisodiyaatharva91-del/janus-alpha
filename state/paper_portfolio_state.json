@@ -1,8 +1,8 @@
 {
-  "bb_equity": 361208.9006634973,
-  "bb_cash": 307450.58066349727,
-  "mr_equity": 240805.9337756649,
-  "mr_cash": 240805.933775665,
+  "bb_equity": 481681.4874261792,
+  "bb_cash": 212462.0174261792,
+  "mr_equity": 120420.3718565448,
+  "mr_cash": 120420.37185654492,
   "active_bb": {
     "RATNAVEER": {
       "entry_date": "2026-10-23",
@@ -33,6 +33,36 @@
       "target_price": 64.48085714285713,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.5989847715736041
+    },
+    "INDOMIM": {
+      "entry_date": "2026-11-12",
+      "entry_price": 1295.0,
+      "shares": 55,
+      "net_cost": 71225.0,
+      "stop_price": 1141.057142857143,
+      "target_price": 1428.4171428571428,
+      "regime_at_entry": "BULL",
+      "breadth_at_entry": 0.6810126582278481
+    },
+    "CUPID": {
+      "entry_date": "2026-11-12",
+      "entry_price": 360.0,
+      "shares": 200,
+      "net_cost": 72000.0,
+      "stop_price": 318.3214285714286,
+      "target_price": 396.12142857142857,
+      "regime_at_entry": "BULL",
+      "breadth_at_entry": 0.6810126582278481
+    },
+    "DELTACORP": {
+      "entry_date": "2026-11-12",
+      "entry_price": 83.51,
+      "shares": 865,
+      "net_cost": 72236.15000000001,
+      "stop_price": 70.42142857142858,
+      "target_price": 94.85342857142858,
+      "regime_at_entry": "BULL",
+      "breadth_at_entry": 0.6810126582278481
     }
   },
   "active_mr": {},
@@ -314,9 +344,13 @@
     {
       "date": "2026-11-11",
       "total_equity": 602014.8344391622
+    },
+    {
+      "date": "2026-11-12",
+      "total_equity": 602101.8592827241
     }
   ],
-  "last_run_date": "2026-11-11",
+  "last_run_date": "2026-11-12",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
