@@ -1,8 +1,8 @@
 {
-  "bb_equity": 361356.2399212211,
-  "bb_cash": 92136.76992122107,
-  "mr_equity": 240904.15994748074,
-  "mr_cash": 240904.15994748086,
+  "bb_equity": 359436.6946453039,
+  "bb_cash": 108240.14464530387,
+  "mr_equity": 240925.30540334547,
+  "mr_cash": 240925.30540334558,
   "active_bb": {
     "RATNAVEER": {
       "entry_date": "2026-10-23",
@@ -21,16 +21,6 @@
       "net_cost": 18018.0,
       "stop_price": 65.41992857142857,
       "target_price": 78.28542857142857,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.5989847715736041
-    },
-    "FCL": {
-      "entry_date": "2026-11-08",
-      "entry_price": 51.79,
-      "shares": 348,
-      "net_cost": 18022.92,
-      "stop_price": 46.30985714285714,
-      "target_price": 64.48085714285713,
       "regime_at_entry": "BEAR",
       "breadth_at_entry": 0.5989847715736041
     },
@@ -198,6 +188,17 @@
       "shares": 12,
       "pnl": -1904.1654414285713,
       "exit_reason": "stop_hit"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "FCL",
+      "entry_date": "2026-11-08",
+      "exit_date": "2026-11-18",
+      "entry_price": 51.79,
+      "exit_price": 46.30985714285714,
+      "shares": 348,
+      "pnl": -1951.263459714286,
+      "exit_reason": "stop_hit"
     }
   ],
   "equity_curve_log": [
@@ -360,9 +361,13 @@
     {
       "date": "2026-11-17",
       "total_equity": 602260.3998687018
+    },
+    {
+      "date": "2026-11-18",
+      "total_equity": 600362.0000486494
     }
   ],
-  "last_run_date": "2026-11-17",
+  "last_run_date": "2026-11-18",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
