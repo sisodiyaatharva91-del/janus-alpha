@@ -1,19 +1,9 @@
 {
-  "bb_equity": 360250.4538815752,
-  "bb_cash": 109053.90388157518,
-  "mr_equity": 240166.9692543835,
-  "mr_cash": 240166.9692543836,
+  "bb_equity": 364404.9985852072,
+  "bb_cash": 130925.84858520722,
+  "mr_equity": 240189.1420082334,
+  "mr_cash": 240189.14200823352,
   "active_bb": {
-    "RATNAVEER": {
-      "entry_date": "2026-10-23",
-      "entry_price": 328.1,
-      "shares": 54,
-      "net_cost": 17717.4,
-      "stop_price": 294.72107142857146,
-      "target_price": 405.3985714285715,
-      "regime_at_entry": "BEAR",
-      "breadth_at_entry": 0.19946808510638298
-    },
     "SBC": {
       "entry_date": "2026-11-08",
       "entry_price": 69.3,
@@ -199,6 +189,17 @@
       "shares": 348,
       "pnl": -1951.263459714286,
       "exit_reason": "stop_hit"
+    },
+    {
+      "sleeve": "Sniper",
+      "symbol": "RATNAVEER",
+      "entry_date": "2026-10-23",
+      "exit_date": "2026-11-23",
+      "entry_price": 328.1,
+      "exit_price": 405.3985714285715,
+      "shares": 54,
+      "pnl": 4121.285572857145,
+      "exit_reason": "target_hit"
     }
   ],
   "equity_curve_log": [
@@ -369,9 +370,13 @@
     {
       "date": "2026-11-19",
       "total_equity": 600417.4231359587
+    },
+    {
+      "date": "2026-11-23",
+      "total_equity": 604594.1405934406
     }
   ],
-  "last_run_date": "2026-11-19",
+  "last_run_date": "2026-11-23",
   "_reset_metadata": {
     "reset_at_utc": "2026-09-19T09:47:46+00:00",
     "reset_by": "reset_paper_state.py",
